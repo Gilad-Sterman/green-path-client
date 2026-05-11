@@ -1,0 +1,201 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+// ── App Shell ──────────────────────────────────────────────────────────────────
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: $color-bg;
+
+  &--desktop {
+    flex-direction: row;
+  }
+
+  &--mobile {
+    flex-direction: column;
+  }
+}
+
+.app-shell__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.app-shell__main {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-6 $space-8;
+
+  .app-shell--mobile & {
+    padding: $space-4;
+    padding-bottom: calc(#{$space-4} + 64px); // room for bottom nav
+  }
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────────
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: $color-surface;
+  border-right: 1px solid $color-border;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 0 0 $space-4;
+}
+
+.sidebar__brand {
+  @include flex-center;
+  justify-content: flex-start;
+  gap: $space-2;
+  height: 56px;
+  flex-shrink: 0;
+  padding: 0 $space-5;
+  border-bottom: 1px solid $color-border;
+  margin-bottom: $space-3;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+
+  svg { flex-shrink: 0; }
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 $space-3;
+  flex: 1;
+}
+
+.sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-muted;
+  text-decoration: none;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $green-50;
+    color: $color-primary;
+  }
+
+  &--active {
+    background: $green-50;
+    color: $color-primary;
+    font-weight: $font-weight-semi;
+  }
+}
+
+.sidebar__badge-wrap {
+  padding: $space-4 $space-5;
+  border-top: 1px solid $color-border;
+}
+
+// ── Header ─────────────────────────────────────────────────────────────────────
+.app-header {
+  @include flex-between;
+  height: 56px;
+  flex-shrink: 0;
+  padding: 0 $space-6;
+  background: $color-surface;
+  border-bottom: 1px solid $color-border;
+}
+
+.app-header__brand {
+  @include flex-center;
+  gap: $space-2;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.app-header__spacer { flex: 1; }
+
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+
+  @media (max-width: 768px) {
+    .badge {
+      display: none;
+    }
+  }
+}
+
+.header-user__name {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text;
+}
+
+.icon-btn {
+  @include flex-center;
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-md;
+  border: none;
+  background: transparent;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover { background: $color-bg; color: $color-text; }
+
+  &--danger:hover { background: #fff1f1; color: $color-error; }
+}
+
+// ── Bottom Nav (employee mobile) ───────────────────────────────────────────────
+.bottom-nav {
+  display: flex;
+  height: 64px;
+  flex-shrink: 0;
+  background: $color-surface;
+  border-top: 1px solid $color-border;
+}
+
+.bottom-nav__item {
+  flex: 1;
+  @include flex-center;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  transition: color $transition-fast;
+
+  &--active { color: $color-primary; }
+}
+
+// ── Badges (additional variants) ───────────────────────────────────────────────
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semi;
+  white-space: nowrap;
+
+  &--green   { background: $green-50;  color: $color-primary; }
+  &--admin   { background: #ede9fe;    color: #6d28d9; }
+  &--warn    { background: #fff7ed;    color: #c2410c; }
+  &--neutral { background: #f3f4f6;    color: #6b7280; }
+  &--error   { background: #fef2f2;    color: $color-error; }
+}

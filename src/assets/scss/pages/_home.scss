@@ -1,0 +1,131 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+.home-page {
+  min-height: 100vh;
+  background: $color-bg;
+}
+
+.home-nav {
+  @include flex-between;
+  padding: $space-4 $space-8;
+  background: $color-surface;
+  border-bottom: 1px solid $color-border;
+  box-shadow: $shadow-sm;
+
+  @include mobile {
+    padding: $space-3 $space-4;
+  }
+}
+
+.home-nav__brand {
+  @include flex-center;
+  gap: $space-2;
+
+  svg { color: $color-primary; }
+
+  span {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-primary;
+  }
+}
+
+.home-nav__user {
+  @include flex-center;
+  gap: $space-4;
+}
+
+.home-nav__name {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+
+  @include mobile { display: none; }
+}
+
+.btn-logout {
+  @include flex-center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  background: none;
+  border: 1.5px solid $color-border;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  transition: border-color $transition-fast, color $transition-fast;
+
+  &:hover {
+    border-color: $color-error;
+    color: $color-error;
+  }
+}
+
+.home-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: $space-12 $space-8;
+
+  @include mobile {
+    padding: $space-8 $space-4;
+  }
+}
+
+.home-welcome {
+  margin-bottom: $space-10;
+
+  h1 {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    margin-bottom: $space-2;
+
+    @include mobile { font-size: $font-size-2xl; }
+  }
+
+  p {
+    color: $color-text-secondary;
+    font-size: $font-size-lg;
+  }
+}
+
+.home-meta {
+  @include flex-center;
+  gap: $space-3;
+  flex-wrap: wrap;
+  margin-top: $space-4;
+}
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: $space-4;
+}
+
+.home-card {
+  @include card;
+  padding: $space-6;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+    margin-bottom: $space-2;
+  }
+
+  p {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    background: $color-primary-light;
+    border-radius: $radius-md;
+    @include flex-center;
+    margin-bottom: $space-4;
+    color: $color-primary;
+  }
+}

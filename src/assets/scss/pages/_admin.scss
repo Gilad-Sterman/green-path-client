@@ -1,0 +1,452 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+// ── Admin page shell ──────────────────────────────────────────────────────────
+.admin-page {
+  max-width: 1100px;
+}
+
+.admin-page__header {
+  @include flex-between;
+  margin-bottom: $space-6;
+
+  h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: $color-text; }
+}
+
+.page-subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  margin-top: $space-1;
+}
+
+// ── Alerts ────────────────────────────────────────────────────────────────────
+.alert {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  margin-bottom: $space-4;
+
+  &--success { background: $green-50; color: $green-900; border: 1px solid $color-primary-light; }
+  &--error   { background: #fef2f2;   color: $color-error;        border: 1px solid #fecaca; }
+  &--warn    { background: #fff7ed;   color: #c2410c;             border: 1px solid #fed7aa; }
+}
+
+// ── Form card (inline form panel) ────────────────────────────────────────────
+.form-card {
+  @include card;
+  padding: $space-6;
+  margin-bottom: $space-6;
+}
+
+.form-card__header {
+  @include flex-between;
+  margin-bottom: $space-5;
+  padding-bottom: $space-4;
+  border-bottom: 1px solid $color-border;
+
+  h3 { font-size: $font-size-lg; font-weight: $font-weight-semi; }
+}
+
+// ── Factory / generic forms ───────────────────────────────────────────────────
+.factory-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+
+  &--three { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.factory-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text;
+  }
+
+  input, select, textarea {
+    @include input-base;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+}
+
+.required { color: $color-error; }
+
+.form-section-label {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semi;
+  color: $color-text-muted;
+  padding-top: $space-2;
+  border-top: 1px dashed $color-border;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-3;
+  padding-top: $space-2;
+}
+
+// ── Button variants ───────────────────────────────────────────────────────────
+.btn-primary {
+  @include btn-primary;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  width: auto;
+  cursor: pointer;
+
+  &--sm {
+    padding: $space-2 $space-4;
+    font-size: $font-size-sm;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spin { animation: spin 0.7s linear infinite; }
+
+.refresh-group {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.last-refreshed {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  white-space: nowrap;
+}
+
+.btn-ghost {
+  padding: $space-2 $space-5;
+  border-radius: $radius-md;
+  border: 1.5px solid $color-border;
+  background: transparent;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $color-bg; }
+
+  &--icon {
+    padding: $space-2;
+    border-color: transparent;
+    color: $color-text-muted;
+    &:hover { color: $color-text; background: $color-bg; border-color: $color-border; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// ── Data table ────────────────────────────────────────────────────────────────
+.data-table-wrap {
+  @include card;
+  padding: 0;
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  thead {
+    background: $color-bg;
+    border-bottom: 1px solid $color-border;
+
+    th {
+      padding: $space-3 $space-4;
+      text-align: left;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semi;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: $color-text-muted;
+      white-space: nowrap;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $color-border;
+      transition: background $transition-fast;
+
+      &:last-child { border-bottom: none; }
+      &:hover { background: $green-50; }
+    }
+
+    td {
+      padding: $space-3 $space-4;
+      color: $color-text;
+      vertical-align: middle;
+    }
+  }
+
+  .td-primary { font-weight: $font-weight-medium; }
+  .td-muted   { color: $color-text-muted; }
+}
+
+// ── Back link ─────────────────────────────────────────────────────────────────
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-muted;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover { color: $color-primary; }
+}
+
+// ── Detail info cards row ─────────────────────────────────────────────────────
+.detail-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: $space-4;
+  margin-bottom: $space-6;
+}
+
+.detail-card {
+  @include card;
+  padding: $space-4;
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+}
+
+.detail-card__icon {
+  @include flex-center;
+  width: 36px;
+  height: 36px;
+  border-radius: $radius-md;
+  background: $green-50;
+  color: $color-primary;
+  flex-shrink: 0;
+}
+
+.detail-card__label {
+  font-size: $font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: $font-weight-semi;
+  color: $color-text-muted;
+  margin-bottom: $space-1;
+}
+
+.detail-card__value {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text;
+}
+
+// ── Section header (title + action button) ────────────────────────────────────
+.section-header {
+  @include flex-between;
+  margin-bottom: $space-4;
+  margin-top: $space-6;
+
+  h2 { font-size: $font-size-lg; font-weight: $font-weight-semi; }
+}
+
+// ── Users section (within factory detail) ────────────────────────────────────
+.users-section {
+  margin-bottom: $space-5;
+}
+
+.users-section__title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semi;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: $space-3;
+}
+
+// ── Filter bar (users page) ───────────────────────────────────────────────────
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  flex-wrap: wrap;
+  margin-bottom: $space-5;
+  padding: $space-4;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+
+  select {
+    @include input-base;
+    width: auto;
+    padding: $space-2 $space-4;
+    font-size: $font-size-sm;
+    cursor: pointer;
+  }
+}
+
+.filter-bar__search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+
+  input {
+    @include input-base;
+    padding-left: calc(#{$space-3} + 15px + #{$space-2});
+    font-size: $font-size-sm;
+  }
+}
+
+.filter-bar__icon {
+  position: absolute;
+  left: $space-3;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $color-text-muted;
+  pointer-events: none;
+}
+
+.filter-bar__count {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+// ── Action buttons (deactivate / reactivate in tables) ────────────────────────
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-1 $space-3;
+  border-radius: $radius-md;
+  border: 1.5px solid;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semi;
+  cursor: pointer;
+  transition: background $transition-fast, opacity $transition-fast;
+
+  &--danger {
+    border-color: #fecaca;
+    color: $color-error;
+    background: #fef2f2;
+    &:hover { background: #fee2e2; }
+  }
+
+  &--success {
+    border-color: $color-primary-light;
+    color: $color-primary;
+    background: $green-50;
+    &:hover { background: $green-100; }
+  }
+}
+
+// ── Row actions dropdown (⋮ menu) ─────────────────────────────────────────────
+.row-actions {
+  position: relative;
+  display: inline-block;
+}
+
+.row-actions__trigger {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: $space-1 $space-2;
+  border-radius: $radius-md;
+  color: $color-text-muted;
+  display: flex;
+  align-items: center;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $color-bg;
+    color: $color-text;
+  }
+}
+
+.row-actions__menu {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+  min-width: 160px;
+  overflow: hidden;
+}
+
+.row-actions__item {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-3 $space-4;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  color: $color-text;
+  text-align: left;
+  transition: background $transition-fast;
+
+  &:hover              { background: $color-bg; }
+  &--danger            { color: $color-error;   &:hover { background: #fef2f2; } }
+  &--success           { color: $color-primary; &:hover { background: $green-50; } }
+  &:disabled           { opacity: 0.5; cursor: not-allowed; }
+}
+
+// ── Table links ───────────────────────────────────────────────────────────────
+.table-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  font-size: $font-size-sm;
+
+  &:hover { text-decoration: underline; }
+}
+
+// ── Empty + loading states ────────────────────────────────────────────────────
+.empty-state {
+  @include card;
+  @include flex-center;
+  flex-direction: column;
+  gap: $space-3;
+  padding: $space-12;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+
+  svg { opacity: 0.3; }
+}
+
+.loading-row {
+  padding: $space-6;
+  text-align: center;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}

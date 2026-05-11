@@ -1,0 +1,46 @@
+// ─── Base ─────────────────────────────────────────────────────────────────────
+@use 'base/vars' as *;
+@use 'base/mixins' as *;
+@use 'base/reset';
+
+// ─── Components ──────────────────────────────────────────────────────────────
+@use 'components/layout';
+
+// ─── Pages ───────────────────────────────────────────────────────────────────
+@use 'pages/login';
+@use 'pages/dashboard';
+@use 'pages/admin';
+
+// ─── Global utilities ────────────────────────────────────────────────────────
+.app-loading {
+  @include flex-center;
+  min-height: 100vh;
+  background: $color-bg;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $color-border;
+  border-top-color: $color-primary;
+  border-radius: $radius-full;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: $space-1 $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semi;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &--green   { background: $color-primary-light; color: $color-primary; }
+  &--neutral { background: #f0f0f0; color: #555; }
+}

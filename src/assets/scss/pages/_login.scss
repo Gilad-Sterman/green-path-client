@@ -1,0 +1,192 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+.login-page {
+  min-height: 100vh;
+  @include flex-center;
+  background: linear-gradient(160deg, $green-50 0%, #fff 60%);
+  padding: $space-4;
+}
+
+.login-card {
+  @include card;
+  width: 100%;
+  max-width: 440px;
+  padding: $space-10 $space-8;
+
+  @include mobile {
+    padding: $space-8 $space-6;
+  }
+}
+
+.login-brand {
+  @include flex-center;
+  gap: $space-3;
+  margin-bottom: $space-10;
+
+  svg { color: $color-primary; }
+
+  span {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-primary;
+    letter-spacing: -0.5px;
+  }
+}
+
+.login-header {
+  margin-bottom: $space-6;
+
+  h2 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    margin-bottom: $space-2;
+  }
+
+  p {
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    line-height: 1.6;
+  }
+}
+
+.login-error {
+  background: $color-error-bg;
+  color: $color-error;
+  border: 1px solid rgba($color-error, .2);
+  border-radius: $radius-sm;
+  padding: $space-3 $space-4;
+  font-size: $font-size-sm;
+  margin-bottom: $space-5;
+}
+
+.login-form {
+  @include flex-col;
+  gap: $space-4;
+}
+
+.login-form .form-field {
+  @include flex-col;
+  gap: $space-2;
+
+  label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+  }
+}
+
+// ── Shared phone+OTP input wrapper (icon on left) ──
+.input-icon-wrap {
+  position: relative;
+  @include flex-center;
+
+  .input-icon {
+    position: absolute;
+    left: $space-4;
+    color: $color-text-muted;
+    pointer-events: none;
+    display: flex;
+  }
+
+  input {
+    @include input-base;
+    padding-left: calc(#{$space-4} + 18px + #{$space-3});
+  }
+}
+
+// ── Phone number: country code select + local number input ──
+.phone-input-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid $color-border;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: $color-surface;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:focus-within {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, .12);
+  }
+}
+
+.country-select {
+  appearance: none;
+  background: $green-50;
+  border: none;
+  outline: none;
+  padding: 0 $space-3;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-primary;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 100px;
+  text-align: center;
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.phone-divider {
+  width: 1px;
+  background: $color-border;
+  flex-shrink: 0;
+}
+
+.phone-input-icon {
+  @include flex-center;
+  padding: 0 $space-2 0 $space-3;
+  color: $color-text-muted;
+}
+
+.phone-input-wrap input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: $space-3 $space-4 $space-3 $space-2;
+  font-size: $font-size-base;
+  color: $color-text;
+  background: transparent;
+  min-width: 0;
+
+  &::placeholder { color: $color-text-muted; }
+  &:disabled { background: transparent; opacity: 0.6; }
+}
+
+.field-hint {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+}
+
+.login-card .btn-primary {
+  @include btn-primary;
+  width: 100%;
+  margin-top: $space-2;
+  padding: $space-4 $space-6;
+}
+
+.login-card .btn-ghost {
+  background: none;
+  border: none;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  text-align: center;
+  padding: $space-2;
+  width: 100%;
+  transition: color $transition-fast;
+
+  &:hover { color: $color-primary; }
+}
+
+.otp-sent-info {
+  @include flex-center;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  background: $color-primary-light;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-primary;
+  margin-bottom: $space-2;
+}
