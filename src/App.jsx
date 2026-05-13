@@ -13,6 +13,11 @@ import AdminDashboard     from './pages/AdminPages/AdminDashboard';
 import FactoriesPage      from './pages/AdminPages/FactoriesPage';
 import FactoryDetailPage  from './pages/AdminPages/FactoryDetailPage';
 import AdminUsersPage     from './pages/AdminPages/AdminUsersPage';
+import SuppliersPage     from './pages/ManagerPages/SuppliersPage';
+import CustomersPage     from './pages/ManagerPages/CustomersPage';
+import ProductsPage      from './pages/ManagerPages/ProductsPage';
+import IntakesPage      from './pages/ManagerPages/IntakesPage';
+import BatchesPage      from './pages/ManagerPages/BatchesPage';
 
 // Redirect to the correct home based on role
 const RootRedirect = () => {
@@ -58,6 +63,15 @@ const App = () => {
           <Route element={<AppShell />}>
             <Route index element={<RootRedirect />} />
             <Route path="dashboard" element={<DashboardPage />} />
+
+            {/* manager + internal_admin */}
+            <Route element={<RoleRoute roles={['manager', 'internal_admin']} />}>
+              <Route path="suppliers" element={<SuppliersPage />} />
+              <Route path="customers" element={<CustomersPage />} />
+              <Route path="products"  element={<ProductsPage />} />
+              <Route path="intakes"   element={<IntakesPage />} />
+              <Route path="batches"   element={<BatchesPage />} />
+            </Route>
 
             {/* internal_admin only */}
             <Route element={<RoleRoute roles={['internal_admin']} />}>

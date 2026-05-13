@@ -42,4 +42,9 @@ export const CACHE_KEYS = {
   FACTORIES:       'factories',
   FACTORY:         (id) => `factory:${id}`,
   USERS:           (factoryId) => factoryId ? `users:factory:${factoryId}` : 'users:all',
+  SUPPLIERS:       'suppliers',
+  CUSTOMERS:       'customers',
+  PRODUCTS:        'products',
+  INTAKES:         'intakes',
+  BATCHES:         'batches',
 };

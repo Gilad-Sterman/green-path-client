@@ -1,0 +1,306 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+// ── Manager page shell (mirrors admin-page) ───────────────────────────────────
+.manager-page {
+  max-width: 1100px;
+}
+
+.manager-page__header {
+  @include flex-between;
+  margin-bottom: $space-6;
+
+  h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: $color-text; }
+}
+
+// ── Generic manager form (mirrors factory-form) ───────────────────────────────
+.manager-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+
+    label {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $color-text;
+    }
+
+    input, select, textarea {
+      @include input-base;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+  }
+}
+
+// ── Checkbox tag group (for array fields like material types) ─────────────────
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  margin-top: $space-1;
+}
+
+.checkbox-item {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-1 $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+
+  input[type='checkbox'] {
+    width: 14px;
+    height: 14px;
+    accent-color: $color-primary;
+    cursor: pointer;
+  }
+
+  &:has(input:checked) {
+    background: $color-primary-light;
+    border-color: $color-primary;
+    color: $color-primary;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// ── Tag pills (for displaying array values in table cells) ────────────────────
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-1;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $space-2;
+  background: $color-bg-alt;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  white-space: nowrap;
+}
+
+// ── Field hints (inline helper text below form fields) ───────────────────────
+.field-hint {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  margin-top: $space-1;
+
+  strong { color: $color-text; }
+}
+
+.field-hint-warn {
+  color: $color-warning;
+}
+
+.form-hint {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  font-weight: $font-weight-normal;
+  margin-left: $space-1;
+}
+
+// ── Intakes filter bar (tabs + type select side by side) ──────────────────────
+.intakes-filters {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-bottom: $space-4;
+  border-bottom: 1px solid $color-border;
+
+  .filter-tabs {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+}
+
+.filter-select {
+  @include input-base;
+  height: 34px;
+  font-size: $font-size-sm;
+  padding: $space-1 $space-3;
+  min-width: 140px;
+  margin-bottom: $space-1;
+}
+
+// ── Toast (fixed overlay — no layout shift) ───────────────────────────────────
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  background: $color-surface;
+  border-radius: $radius-md;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: $font-size-sm;
+  color: $color-text;
+  max-width: 380px;
+  animation: toast-in 0.2s ease;
+
+  &--success { border-left: 3px solid $color-primary; svg { color: $color-primary; } }
+  &--error   { border-left: 3px solid $color-error;   svg { color: $color-error; }   }
+  &--warn    { border-left: 3px solid $color-warning;  svg { color: $color-warning; } }
+
+  span { flex: 1; }
+
+  &__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $color-text-muted;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: $radius-sm;
+    transition: color 0.15s;
+    &:hover { color: $color-text; }
+  }
+}
+
+@keyframes toast-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+// ── Batch components builder ──────────────────────────────────────────────────
+.components-section {
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-4;
+  background: $color-bg;
+  margin-top: $space-2;
+
+  &__header {
+    @include flex-between;
+    margin-bottom: $space-3;
+
+    label { font-weight: $font-weight-semibold; font-size: $font-size-sm; color: $color-text; }
+  }
+}
+
+.component-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  gap: $space-3;
+  align-items: start;
+  padding: $space-2 0;
+
+  & + & { border-top: 1px solid $color-border; }
+
+  &__select {
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+
+    select { @include input-base; width: 100%; }
+  }
+
+  &__weight {
+    input { @include input-base; width: 100%; }
+  }
+}
+
+.allocation-summary {
+  margin-top: $space-3;
+  padding-top: $space-3;
+  border-top: 1px dashed $color-border;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+// ── Batch detail (expandable row) ─────────────────────────────────────────────
+.row--expanded td { background: $color-bg-alt; }
+
+.row--detail td { padding: 0 !important; }
+
+.batch-detail {
+  padding: $space-4 $space-6;
+  background: $color-bg-alt;
+  border-top: 1px solid $color-border;
+
+  &__notes {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    margin-bottom: $space-3;
+  }
+}
+
+.components-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th {
+    padding: $space-2 $space-3;
+    text-align: left;
+    font-weight: $font-weight-semibold;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid $color-border;
+  }
+
+  td {
+    padding: $space-2 $space-3;
+    border-bottom: 1px solid rgba($color-border, 0.5);
+    color: $color-text;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+}
+
+// ── Danger icon button variant ─────────────────────────────────────────────────
+.icon-btn--danger {
+  color: $color-error;
+  &:hover { background: lighten($color-error, 38%); }
+}
+
+// ── Filter tabs ───────────────────────────────────────────────────────────────
+.filter-tabs {
+  display: flex;
+  gap: $space-1;
+  margin-bottom: $space-4;
+  border-bottom: 1px solid $color-border;
+  padding-bottom: 0;
+}
+
+.filter-tab {
+  padding: $space-2 $space-4;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-muted;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+
+  &:hover { color: $color-text; }
+
+  &--active {
+    color: $color-primary;
+    border-bottom-color: $color-primary;
+  }
+}
