@@ -80,18 +80,24 @@
 // ── Shared phone+OTP input wrapper (icon on left) ──
 .input-icon-wrap {
   position: relative;
-  @include flex-center;
+  display: flex;
+  align-items: center;
+  width: 100%;
 
   .input-icon {
     position: absolute;
     left: $space-4;
+    top: 50%;
+    transform: translateY(-50%);
     color: $color-text-muted;
     pointer-events: none;
     display: flex;
+    z-index: 1;
   }
 
   input {
     @include input-base;
+    width: 100%;
     padding-left: calc(#{$space-4} + 18px + #{$space-3});
   }
 }

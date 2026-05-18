@@ -167,7 +167,8 @@
 .data-table-wrap {
   @include card;
   padding: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .data-table {

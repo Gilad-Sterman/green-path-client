@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Package, Plus, X, AlertCircle, RefreshCw, Pencil, Info } from 'lucide-react';
+import { Package, Plus, X, AlertCircle, RefreshCw, Pencil, Info, ChevronRight } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
@@ -33,6 +33,8 @@ const IntakesPage = () => {
   const dispatch = useDispatch();
   const { list: intakes, loading, error, lastFetched } = useSelector((s) => s.intakes);
   const { list: suppliers } = useSelector((s) => s.suppliers);
+  const { user } = useSelector((s) => s.auth);
+  const isManager = user?.role === 'manager' || user?.role === 'internal_admin';
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [showForm, setShowForm]     = useState(false);
@@ -151,9 +153,11 @@ const IntakesPage = () => {
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
             </button>
           </div>
-          <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
-            <Plus size={16} /> New Intake
-          </button>
+          {isManager && (
+            <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
+              <Plus size={16} /> New Intake
+            </button>
+          )}
         </div>
       </div>
 
@@ -316,55 +320,89 @@ const IntakesPage = () => {
       )}
 
       {!loading && visible.length > 0 && (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Supplier</th>
-                <th>Type</th>
-                <th>Source</th>
-                <th>Net weight</th>
-                <th>Eligible weight</th>
-                <th>Delivery note</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((i) => (
-                <tr key={i.id}>
-                  <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(i.intake_date)}</td>
-                  <td className="td-primary">{i.supplier_name || '—'}</td>
-                  <td>
-                    <span className="tag">{i.material_type}</span>
-                  </td>
-                  <td className="td-muted">{i.material_source?.replace(/_/g, ' ') || '—'}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{fmtKg(i.net_weight_kg)}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    {fmtKg(i.eligible_weight_kg)}
-                    {parseFloat(i.eligible_input_percent) < 100 && (
-                      <span className="td-muted" style={{ fontSize: '11px', marginLeft: '4px' }}>
-                        ({i.eligible_input_percent}%)
-                      </span>
-                    )}
-                  </td>
-                  <td><code style={{ fontSize: '12px' }}>{i.delivery_note_number}</code></td>
-                  <td>
-                    <span className={`badge ${STATUS_BADGE[i.material_status] || 'badge--neutral'}`}>
-                      {i.material_status}
-                    </span>
-                  </td>
-                  <td>
-                    <RowActionsMenu items={[
-                      { label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleEdit(i) },
-                    ]} />
-                  </td>
+        <>
+          {/* ── Desktop table ───────────────────────────────────────── */}
+          <div className="data-table-wrap hide-on-mobile">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Supplier</th>
+                  <th>Type</th>
+                  <th>Source</th>
+                  <th>Net weight</th>
+                  <th>Eligible weight</th>
+                  <th>Delivery note</th>
+                  <th>Status</th>
+                  {isManager && <th>Recorded by</th>}
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {visible.map((i) => (
+                  <tr key={i.id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(i.intake_date)}</td>
+                    <td className="td-primary">{i.supplier_name || '—'}</td>
+                    <td><span className="tag">{i.material_type}</span></td>
+                    <td className="td-muted">{i.material_source?.replace(/_/g, ' ') || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{fmtKg(i.net_weight_kg)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {fmtKg(i.eligible_weight_kg)}
+                      {parseFloat(i.eligible_input_percent) < 100 && (
+                        <span className="td-muted" style={{ fontSize: '11px', marginLeft: '4px' }}>
+                          ({i.eligible_input_percent}%)
+                        </span>
+                      )}
+                    </td>
+                    <td><code style={{ fontSize: '12px' }}>{i.delivery_note_number}</code></td>
+                    <td>
+                      <span className={`badge ${STATUS_BADGE[i.material_status] || 'badge--neutral'}`}>
+                        {i.material_status}
+                      </span>
+                    </td>
+                    {isManager && (
+                      <td className="td-muted" style={{ fontSize: '12px' }}>
+                        {i.created_by_name || '—'}
+                      </td>
+                    )}
+                    <td>
+                      {isManager && (
+                        <RowActionsMenu items={[
+                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleEdit(i) },
+                        ]} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Mobile cards ────────────────────────────────────────── */}
+          <div className="intake-cards show-on-mobile">
+            {visible.map((i) => (
+              <div key={i.id} className="intake-card">
+                <div className="intake-card__top">
+                  <div>
+                    <span className="intake-card__supplier">{i.supplier_name || '—'}</span>
+                    <span className="intake-card__date">{fmtDate(i.intake_date)}</span>
+                  </div>
+                  <span className={`badge ${STATUS_BADGE[i.material_status] || 'badge--neutral'}`}>
+                    {i.material_status}
+                  </span>
+                </div>
+                <div className="intake-card__row">
+                  <span className="tag">{i.material_type}</span>
+                  <span className="intake-card__weight">{fmtKg(i.net_weight_kg)}</span>
+                </div>
+                <div className="intake-card__meta">
+                  <span>Note: <code>{i.delivery_note_number}</code></span>
+                  {i.created_by_name && <span>By: {i.created_by_name}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

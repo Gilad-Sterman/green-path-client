@@ -2,8 +2,8 @@ import { NavLink } from 'react-router-dom';
 import { Home, PlusCircle, Package } from 'lucide-react';
 
 const EMPLOYEE_NAV = [
-  { path: '/dashboard', icon: Home,        label: 'Home',       end: true },
-  { path: '/intakes',   icon: Package,     label: 'My Intakes' },
+  { path: '/intakes',     icon: Package,    label: 'My Intakes' },
+  { path: '/dashboard',   icon: Home,       label: 'Home',      end: true },
   { path: '/intakes/new', icon: PlusCircle, label: 'New Intake' },
 ];
 

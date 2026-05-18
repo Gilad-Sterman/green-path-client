@@ -47,4 +47,7 @@ export const CACHE_KEYS = {
   PRODUCTS:        'products',
   INTAKES:         'intakes',
   BATCHES:         'batches',
+  SHIPMENTS:       'shipments',
+  CREDITS:         'credits',
+  FLAGS:           'flags',
 };

@@ -11,6 +11,7 @@
 @use 'pages/dashboard';
 @use 'pages/admin';
 @use 'pages/manager';
+@use 'pages/employee';
 
 // ─── Global utilities ────────────────────────────────────────────────────────
 .app-loading {
@@ -44,4 +45,6 @@
 
   &--green   { background: $color-primary-light; color: $color-primary; }
   &--neutral { background: #f0f0f0; color: #555; }
+  &--blue    { background: #e3f2fd; color: #1565c0; }
+  &--warn    { background: #fff3e0; color: $color-warning; }
 }

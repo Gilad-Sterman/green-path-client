@@ -14,6 +14,7 @@ const MANAGER_NAV = [
   { path: '/customers',  icon: Users,           label: 'Customers' },
   { path: '/products',   icon: Box,             label: 'Products' },
   { path: '/flags',      icon: Flag,            label: 'Flags' },
+  { path: '/team',       icon: Users,           label: 'Team' },
   { path: '/reports',    icon: BarChart3,       label: 'Reports' },
 ];
 

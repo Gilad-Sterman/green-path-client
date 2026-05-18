@@ -2,8 +2,15 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Users, BarChart3, HeadphonesIcon, RefreshCw } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchFactories } from '../../store/slices/factoriesSlice';
+import { fetchFactories }        from '../../store/slices/factoriesSlice';
+import { fetchCreditsSummary }   from '../../store/slices/creditsSlice';
+import { fetchFlagsSummary }     from '../../store/slices/flagsSlice';
 import useRelativeTime from '../../hooks/useRelativeTime';
+
+const fmtKg = (n) =>
+  n != null
+    ? `${parseFloat(n).toLocaleString(undefined, { maximumFractionDigits: 0 })} kg`
+    : '—';
 
 const QUICK_LINKS = [
   { to: '/admin/factories', icon: Building2,       label: 'Factories',  desc: 'Create and manage recycling factories' },
@@ -16,14 +23,19 @@ const AdminDashboard = () => {
   const dispatch = useDispatch();
   const { user }                    = useSelector((state) => state.auth);
   const { list: factories, loading, lastFetched } = useSelector((state) => state.factories);
+  const { summary: creditsSummary, summaryLoading } = useSelector((s) => s.credits);
+  const { summary: flagsSummary }                   = useSelector((s) => s.flags);
   const refreshedLabel = useRelativeTime(lastFetched);
 
   useEffect(() => {
     dispatch(fetchFactories());
+    dispatch(fetchCreditsSummary());
+    dispatch(fetchFlagsSummary());
   }, [dispatch]);
 
   const activeFactories  = factories.filter((f) => f.status === 'active').length;
   const totalActiveUsers = factories.reduce((sum, f) => sum + parseInt(f.active_user_count || 0), 0);
+  const openFlags        = flagsSummary?.open ?? null;
 
   return (
     <div className="dashboard">
@@ -61,14 +73,23 @@ const AdminDashboard = () => {
         </div>
         <div className="kpi-card">
           <span className="kpi-card__label">Credits Issued (All)</span>
-          <span className="kpi-card__value">—</span>
-          <span className="kpi-card__hint">Available after shipments module</span>
+          <span className="kpi-card__value">
+            {summaryLoading ? '…' : fmtKg(creditsSummary?.total_credits_kg)}
+          </span>
+          <span className="kpi-card__hint">Across all factories</span>
         </div>
-        <div className="kpi-card kpi-card--warn">
+        <Link
+          to="/flags"
+          className={`kpi-card kpi-card--link${openFlags > 0 ? ' kpi-card--warn' : ''}`}
+        >
           <span className="kpi-card__label">Open Flags</span>
-          <span className="kpi-card__value">—</span>
-          <span className="kpi-card__hint">Available after flags module</span>
-        </div>
+          <span className="kpi-card__value">
+            {openFlags === null ? '…' : openFlags}
+          </span>
+          <span className="kpi-card__hint">
+            {openFlags > 0 ? 'Requires attention' : 'All clear'}
+          </span>
+        </Link>
       </div>
 
       <h2 className="dashboard__section-title">Admin Actions</h2>

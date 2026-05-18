@@ -128,6 +128,21 @@
     border-bottom: none;
     margin-bottom: 0;
   }
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    border-bottom: none;
+    gap: $space-2;
+
+    .filter-tabs {
+      flex-wrap: wrap;
+      border-bottom: 1px solid $color-border;
+      padding-bottom: $space-2;
+    }
+
+    .filter-select { width: 100%; min-width: unset; }
+  }
 }
 
 .filter-select {
@@ -137,6 +152,8 @@
   padding: $space-1 $space-3;
   min-width: 140px;
   margin-bottom: $space-1;
+
+  @include mobile { min-width: unset; }
 }
 
 // ── Toast (fixed overlay — no layout shift) ───────────────────────────────────
@@ -274,6 +291,251 @@
 .icon-btn--danger {
   color: $color-error;
   &:hover { background: lighten($color-error, 38%); }
+}
+
+// ── td-truncate utility ───────────────────────────────────────────────────────
+.td-truncate {
+  max-width: 200px;
+  @include truncate;
+}
+
+// ── Credits summary cards ─────────────────────────────────────────────────────
+.credits-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $space-4;
+  margin-bottom: $space-6;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.credits-summary-card {
+  @include card;
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-5 $space-6;
+
+  &__icon {
+    @include flex-center;
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    background: $color-primary-light;
+    color: $color-primary;
+    flex-shrink: 0;
+  }
+
+  &__value {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    font-weight: $font-weight-medium;
+    margin-top: 2px;
+  }
+
+  &__hint {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    margin-top: 2px;
+  }
+
+  &--primary .credits-summary-card__icon {
+    background: $color-primary;
+    color: #fff;
+  }
+
+  &--warn .credits-summary-card__icon {
+    background: #fff3e0;
+    color: $color-warning;
+  }
+}
+
+// ── Credits mass-balance progress bar ─────────────────────────────────────────
+.credits-balance-bar-wrap {
+  margin-bottom: $space-6;
+}
+
+.credits-balance-bar {
+  height: 8px;
+  background: $color-bg-alt;
+  border-radius: $radius-full;
+  overflow: hidden;
+  border: 1px solid $color-border;
+
+  &__fill {
+    height: 100%;
+    background: $color-primary;
+    border-radius: $radius-full;
+    transition: width 0.4s ease;
+  }
+}
+
+.credits-balance-bar__label {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  margin-top: $space-2;
+}
+
+// ── Severity badge variants ───────────────────────────────────────────────────
+.badge--critical { background: #fce4ec; color: #b71c1c; }
+.badge--high     { background: #fbe9e7; color: #bf360c; }
+
+.flag-severity {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+}
+
+// ── Flags summary strip ───────────────────────────────────────────────────────
+.flags-summary-strip {
+  display: flex;
+  gap: $space-4;
+  margin-bottom: $space-6;
+
+  &__item {
+    @include card;
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: $space-4 $space-5;
+    min-width: 120px;
+
+    &--open .flags-summary-strip__count { color: $color-warning; }
+  }
+
+  &__count {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    line-height: 1;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// ── Critical row highlight ────────────────────────────────────────────────────
+.row--critical td {
+  background: #fff8f8;
+  border-left: 3px solid #b71c1c;
+  &:first-child { border-left: 3px solid #b71c1c; }
+}
+
+// ── Team filter bar ───────────────────────────────────────────────────────────
+.team-filters {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-bottom: $space-4;
+  border-bottom: 1px solid $color-border;
+
+  .filter-tabs {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    border-bottom: none;
+    gap: $space-2;
+
+    .filter-tabs {
+      flex-wrap: wrap;
+      border-bottom: 1px solid $color-border;
+      padding-bottom: $space-2;
+    }
+
+    .filter-select { width: 100%; min-width: unset; }
+  }
+}
+
+// ── Flags filter bar (tabs + severity select side by side) ────────────────────
+.flags-filters {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-bottom: $space-4;
+  border-bottom: 1px solid $color-border;
+
+  .filter-tabs {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    border-bottom: none;
+    gap: $space-2;
+
+    .filter-tabs {
+      flex-wrap: wrap;
+      border-bottom: 1px solid $color-border;
+      padding-bottom: $space-2;
+    }
+
+    .filter-select { width: 100%; min-width: unset; }
+  }
+}
+
+// ── Modal overlay ─────────────────────────────────────────────────────────────
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1000;
+  @include flex-center;
+  padding: $space-4;
+}
+
+.modal {
+  @include card;
+  width: 100%;
+  max-width: 480px;
+  animation: modal-in 0.18s ease;
+
+  &__header {
+    @include flex-between;
+    padding: $space-5 $space-6 $space-4;
+    border-bottom: 1px solid $color-border;
+
+    h3 { font-size: $font-size-lg; font-weight: $font-weight-semi; color: $color-text; }
+  }
+
+  &__body {
+    padding: $space-5 $space-6 $space-6;
+  }
+
+  &__desc {
+    font-size: $font-size-sm;
+    color: $color-text;
+    margin-bottom: $space-5;
+    text-transform: capitalize;
+  }
+}
+
+@keyframes modal-in {
+  from { transform: translateY(-12px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0)      scale(1);    opacity: 1; }
 }
 
 // ── Filter tabs ───────────────────────────────────────────────────────────────

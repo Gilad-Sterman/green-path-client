@@ -1,0 +1,222 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+// ── Employee page wrapper ─────────────────────────────────────────────────────
+.employee-page {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: $space-4 $space-4 $space-10;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+// ── Top nav bar (back + title) ────────────────────────────────────────────────
+.employee-page__nav {
+  @include flex-between;
+  align-items: center;
+  margin-bottom: $space-2;
+
+  h2 {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+  }
+}
+
+.back-btn {
+  @include flex-center;
+  gap: $space-2;
+  background: none;
+  border: none;
+  color: $color-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  padding: $space-2 $space-1;
+  border-radius: $radius-sm;
+  transition: opacity $transition-fast;
+
+  &:hover { opacity: 0.75; }
+}
+
+// ── Mobile-first form ─────────────────────────────────────────────────────────
+.employee-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+
+    label {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $color-text;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: $space-3 $space-4;
+      font-size: $font-size-base;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      background: $color-bg;
+      color: $color-text;
+      transition: border-color $transition-fast, box-shadow $transition-fast;
+      box-sizing: border-box;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+        box-shadow: 0 0 0 3px rgba($color-primary, 0.12);
+      }
+    }
+
+    select { appearance: auto; }
+
+    textarea { resize: vertical; min-height: 80px; }
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $space-3;
+
+    @include mobile {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__eligible-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    background: $color-primary-light;
+    color: $color-primary;
+    border-radius: $radius-md;
+    padding: $space-2 $space-4;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    margin-top: -$space-2;
+  }
+}
+
+// ── Full-width button variants ────────────────────────────────────────────────
+.btn-primary--full,
+.btn-ghost--full {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-primary--lg {
+  padding: $space-4 $space-6;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semi;
+  border-radius: $radius-lg;
+}
+
+// ── Responsive table / card toggle ───────────────────────────────────────────
+.hide-on-mobile { @include mobile { display: none !important; } }
+.show-on-mobile { display: none !important; @include mobile { display: flex !important; } }
+
+// ── Intake cards (mobile list view) ──────────────────────────────────────────
+.intake-cards {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.intake-card {
+  @include card;
+  padding: $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  &__top {
+    @include flex-between;
+    align-items: flex-start;
+    gap: $space-2;
+  }
+
+  &__supplier {
+    display: block;
+    font-weight: $font-weight-semi;
+    font-size: $font-size-base;
+    color: $color-text;
+  }
+
+  &__date {
+    display: block;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    margin-top: 2px;
+  }
+
+  &__row {
+    @include flex-between;
+    align-items: center;
+  }
+
+  &__weight {
+    font-weight: $font-weight-medium;
+    font-size: $font-size-sm;
+    color: $color-text;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-3;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+
+    code {
+      font-size: $font-size-xs;
+      background: $color-bg;
+      padding: 1px 4px;
+      border-radius: $radius-sm;
+    }
+  }
+}
+
+// ── Success screen ────────────────────────────────────────────────────────────
+.intake-success {
+  @include flex-center;
+  flex-direction: column;
+  gap: $space-4;
+  padding: $space-10 $space-4;
+  text-align: center;
+
+  &__icon {
+    width: 80px;
+    height: 80px;
+    border-radius: $radius-full;
+    background: $color-primary-light;
+    color: $color-primary;
+    @include flex-center;
+  }
+
+  h2 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+  }
+
+  p {
+    font-size: $font-size-base;
+    color: $color-text-muted;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    width: 100%;
+    max-width: 320px;
+    margin-top: $space-2;
+  }
+}

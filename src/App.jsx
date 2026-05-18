@@ -18,6 +18,11 @@ import CustomersPage     from './pages/ManagerPages/CustomersPage';
 import ProductsPage      from './pages/ManagerPages/ProductsPage';
 import IntakesPage      from './pages/ManagerPages/IntakesPage';
 import BatchesPage      from './pages/ManagerPages/BatchesPage';
+import ShipmentsPage    from './pages/ManagerPages/ShipmentsPage';
+import CreditsPage      from './pages/ManagerPages/CreditsPage';
+import FlagsPage        from './pages/ManagerPages/FlagsPage';
+import TeamPage         from './pages/ManagerPages/TeamPage';
+import NewIntakePage    from './pages/EmployeePages/NewIntakePage';
 
 // Redirect to the correct home based on role
 const RootRedirect = () => {
@@ -64,13 +69,22 @@ const App = () => {
             <Route index element={<RootRedirect />} />
             <Route path="dashboard" element={<DashboardPage />} />
 
+            {/* all staff: employee + manager + internal_admin */}
+            <Route path="intakes/new" element={<NewIntakePage />} />
+            <Route element={<RoleRoute roles={['employee', 'manager', 'internal_admin']} />}>
+              <Route path="intakes"   element={<IntakesPage />} />
+              <Route path="batches"   element={<BatchesPage />} />
+              <Route path="shipments" element={<ShipmentsPage />} />
+            </Route>
+
             {/* manager + internal_admin */}
             <Route element={<RoleRoute roles={['manager', 'internal_admin']} />}>
               <Route path="suppliers" element={<SuppliersPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="products"  element={<ProductsPage />} />
-              <Route path="intakes"   element={<IntakesPage />} />
-              <Route path="batches"   element={<BatchesPage />} />
+              <Route path="credits"   element={<CreditsPage />} />
+              <Route path="flags"     element={<FlagsPage />} />
+              <Route path="team"      element={<TeamPage />} />
             </Route>
 
             {/* internal_admin only */}
