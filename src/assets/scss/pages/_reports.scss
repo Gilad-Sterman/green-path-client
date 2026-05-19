@@ -1,0 +1,206 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+// ── Date range bar ────────────────────────────────────────────────────────────
+.reports-date-bar {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin-bottom: $space-6;
+}
+
+.reports-quick-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.reports-quick-btn {
+  padding: $space-2 $space-4;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  border: 1.5px solid $color-border;
+  border-radius: $radius-full;
+  background: $color-surface;
+  color: $color-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { border-color: $color-primary; color: $color-primary; }
+
+  &--active {
+    background: $color-primary;
+    border-color: $color-primary;
+    color: #fff;
+  }
+}
+
+.reports-custom-range {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  flex-wrap: wrap;
+
+  input[type='date'] {
+    @include input-base;
+    height: 36px;
+    font-size: $font-size-sm;
+    padding: $space-1 $space-3;
+    width: 160px;
+  }
+
+  span { color: $color-text-muted; font-size: $font-size-sm; }
+}
+
+// ── KPI grid ─────────────────────────────────────────────────────────────────
+.reports-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $space-4;
+  margin-bottom: $space-6;
+
+  @include tablet { grid-template-columns: repeat(2, 1fr); }
+  @include mobile { grid-template-columns: 1fr; }
+}
+
+.report-kpi {
+  @include card;
+  padding: $space-5;
+  display: flex;
+  align-items: flex-start;
+  gap: $space-4;
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    @include flex-center;
+    border-radius: $radius-md;
+    background: $color-bg;
+    color: $color-text-secondary;
+    flex-shrink: 0;
+  }
+
+  &__value {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    margin-top: 2px;
+  }
+
+  &__hint {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    margin-top: 2px;
+  }
+
+  &--primary &__icon { background: $color-primary-light; color: $color-primary; }
+  &--warn    &__icon { background: $color-error-bg; color: $color-error; }
+  &--warn    &__value { color: $color-error; }
+}
+
+// ── Section layout ────────────────────────────────────────────────────────────
+.reports-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-6;
+  margin-bottom: $space-6;
+
+  @include tablet { grid-template-columns: 1fr; }
+}
+
+.reports-section {
+  @include flex-col;
+  gap: $space-4;
+
+  &__title {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+    padding-bottom: $space-3;
+    border-bottom: 1px solid $color-border;
+  }
+}
+
+.reports-empty {
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+  text-align: center;
+  padding: $space-6 0;
+}
+
+// ── Horizontal bar chart (intakes by type) ────────────────────────────────────
+.reports-type-chart {
+  @include flex-col;
+  gap: $space-3;
+}
+
+.reports-type-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 90px 32px;
+  align-items: center;
+  gap: $space-3;
+}
+
+.reports-type-label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text;
+  text-transform: capitalize;
+}
+
+.reports-type-bar-wrap {
+  height: 10px;
+  background: $color-bg;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.reports-type-bar {
+  height: 100%;
+  border-radius: $radius-full;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.reports-type-value {
+  font-size: $font-size-xs;
+  color: $color-text;
+  font-weight: $font-weight-medium;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.reports-type-count {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  text-align: right;
+}
+
+// ── Factory activity bar (admin table) ────────────────────────────────────────
+.factory-activity-bar {
+  height: 8px;
+  width: 80px;
+  background: $color-bg;
+  border-radius: $radius-full;
+  overflow: hidden;
+
+  &__fill {
+    height: 100%;
+    background: $color-primary;
+    border-radius: $radius-full;
+    transition: width 0.4s ease;
+    min-width: 3px;
+  }
+}
+
+// ── Error cell ────────────────────────────────────────────────────────────────
+.td-error {
+  color: $color-error;
+  font-weight: $font-weight-medium;
+}

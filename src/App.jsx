@@ -22,7 +22,9 @@ import ShipmentsPage    from './pages/ManagerPages/ShipmentsPage';
 import CreditsPage      from './pages/ManagerPages/CreditsPage';
 import FlagsPage        from './pages/ManagerPages/FlagsPage';
 import TeamPage         from './pages/ManagerPages/TeamPage';
-import NewIntakePage    from './pages/EmployeePages/NewIntakePage';
+import NewIntakePage       from './pages/EmployeePages/NewIntakePage';
+import ReportsPage         from './pages/ManagerPages/ReportsPage';
+import AdminReportsPage    from './pages/AdminPages/AdminReportsPage';
 
 // Redirect to the correct home based on role
 const RootRedirect = () => {
@@ -85,6 +87,7 @@ const App = () => {
               <Route path="credits"   element={<CreditsPage />} />
               <Route path="flags"     element={<FlagsPage />} />
               <Route path="team"      element={<TeamPage />} />
+              <Route path="reports"   element={<ReportsPage />} />
             </Route>
 
             {/* internal_admin only */}
@@ -93,6 +96,7 @@ const App = () => {
               <Route path="admin/factories"             element={<FactoriesPage />} />
               <Route path="admin/factories/:id"         element={<FactoryDetailPage />} />
               <Route path="admin/users"                 element={<AdminUsersPage />} />
+              <Route path="admin/reports"               element={<AdminReportsPage />} />
             </Route>
           </Route>
         </Route>
