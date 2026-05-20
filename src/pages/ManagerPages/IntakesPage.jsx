@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Package, Plus, X, AlertCircle, RefreshCw, Pencil, Info, ChevronRight } from 'lucide-react';
+import { Package, Plus, X, AlertCircle, RefreshCw, Pencil, Info, ChevronRight, ScanLine, Loader2, CheckCircle2 } from 'lucide-react';
+import { analyzeDocument } from '../../api/documents';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
@@ -14,6 +15,40 @@ const LOCATION_STATUSES = ['in_factory', 'out_of_factory', 'unknown'];
 const DATA_ENTRY_PROFILES = ['manual_capture', 'trusted_capture', 'mixed_capture'];
 
 const STATUS_BADGE = { recycled: 'badge--green', virgin: 'badge--neutral', mixed: 'badge--warn' };
+
+const CONFIDENCE_LABELS = {
+  auto: { label: 'Auto-filled', cls: 'ocr-badge--auto' },
+  warn: { label: 'Review',      cls: 'ocr-badge--warn' },
+};
+
+const MATERIAL_ALIASES = {
+  plastic:  ['פלסטיק', 'פי.וי.סי', 'pvc', 'pe', 'pp', 'plastic'],
+  paper:    ['נייר', 'קרטון', 'paper', 'cardboard', 'carton'],
+  metal:    ['מתכת', 'ברזל', 'אלומיניום', 'נחושת', 'metal', 'iron', 'aluminium', 'aluminum', 'copper', 'steel'],
+  glass:    ['זכוכית', 'glass'],
+  textile:  ['טקסטיל', 'בד', 'בגדים', 'textile', 'fabric', 'clothing'],
+  rubber:   ['גומי', 'צמיג', 'rubber', 'tyre', 'tire'],
+  mixed:    ['מעורב', 'mixed'],
+};
+
+const matchMaterialType = (hint = '') => {
+  const lower = hint.toLowerCase();
+  for (const [type, aliases] of Object.entries(MATERIAL_ALIASES)) {
+    if (aliases.some((a) => lower.includes(a.toLowerCase()))) return type;
+  }
+  return null;
+};
+
+const parseDateValue = (raw = '') => {
+  const parts = raw.split(/[\/\-\.]/);
+  if (parts.length === 3 && parts[2].length === 4) {
+    return new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`);
+  }
+  return new Date(raw);
+};
+
+const normalizeStr = (s = '') =>
+  s.toLowerCase().replace(/[\s\-\.,'"״׳]+/g, '').replace(/\u05D1\u05E2\u05D3\u0022\u05DE$/u, '');
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -45,6 +80,12 @@ const IntakesPage = () => {
   const [formError, setFormError]   = useState('');
   const [filter, setFilter]         = useState('all');
   const [typeFilter, setTypeFilter] = useState('');
+  const [ocrLoading,      setOcrLoading]      = useState(false);
+  const [ocrError,        setOcrError]        = useState('');
+  const [ocrFields,       setOcrFields]       = useState(null);
+  const [ocrSupplierHint, setOcrSupplierHint] = useState('');
+  const [ocrExtras,       setOcrExtras]       = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchIntakes({ force: false }));
@@ -52,8 +93,61 @@ const IntakesPage = () => {
   }, [dispatch]);
 
   const handleChange = (e) => {
-    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((p) => ({ ...p, [name]: value }));
     setFormError('');
+    if (name === 'supplier_id') setOcrSupplierHint('');
+    if (ocrFields?.[name]) setOcrFields((prev) => { const next = { ...prev }; delete next[name]; return next; });
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = '';
+    if (!file) return;
+    setOcrLoading(true); setOcrError(''); setOcrFields(null); setOcrSupplierHint(''); setOcrExtras(null);
+    try {
+      const { data } = await analyzeDocument(file);
+      const fields = data?.data?.fields || {};
+      const filled = {};
+      if (fields.delivery_note_number?.fill && fields.delivery_note_number.fill !== 'skip') {
+        filled.delivery_note_number = fields.delivery_note_number;
+        setForm((p) => ({ ...p, delivery_note_number: fields.delivery_note_number.value }));
+      }
+      if (fields.net_weight_kg?.fill && fields.net_weight_kg.fill !== 'skip') {
+        const numVal = parseFloat(fields.net_weight_kg.value.replace(/[^0-9.]/g, ''));
+        if (!isNaN(numVal)) { filled.net_weight_kg = fields.net_weight_kg; setForm((p) => ({ ...p, net_weight_kg: String(numVal) })); }
+      }
+      if (fields.intake_date?.fill && fields.intake_date.fill !== 'skip') {
+        const parsed = parseDateValue(fields.intake_date.value);
+        if (!isNaN(parsed.getTime())) {
+          const iso = parsed.toISOString().split('T')[0];
+          filled.intake_date = { ...fields.intake_date, value: iso };
+          setForm((p) => ({ ...p, intake_date: iso }));
+        }
+      }
+      if (fields.supplier_name?.fill && fields.supplier_name.fill !== 'skip') {
+        const extracted = normalizeStr(fields.supplier_name.value);
+        const match = suppliers.filter((s) => s.is_active).find((s) => {
+          const norm = normalizeStr(s.name);
+          return norm === extracted || norm.includes(extracted) || extracted.includes(norm);
+        });
+        if (match) {
+          filled.supplier_id = { value: match.name, confidence: fields.supplier_name.confidence, fill: fields.supplier_name.fill };
+          setForm((p) => ({ ...p, supplier_id: match.id }));
+        } else { setOcrSupplierHint(fields.supplier_name.value); }
+      }
+      const extras = data?.data?.extras || {};
+      if (Object.keys(extras).length > 0) setOcrExtras(extras);
+      if (extras.material_hint) {
+        const matched = matchMaterialType(extras.material_hint);
+        if (matched) { filled.material_type = { value: matched, confidence: 0.80, fill: 'auto' }; setForm((p) => ({ ...p, material_type: matched })); }
+      }
+      setOcrFields(Object.keys(filled).length > 0 ? filled : null);
+      if (Object.keys(filled).length === 0) setOcrError('Document analyzed but no fields could be extracted.');
+    } catch (err) {
+      setOcrError(err?.response?.data?.message || 'OCR failed. Please fill the form manually.');
+    } finally { setOcrLoading(false); }
   };
 
   const handleEdit = (intake) => {
@@ -128,6 +222,7 @@ const IntakesPage = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError('');
+    setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setOcrError('');
     dispatch(clearIntakesError());
   };
 
@@ -174,6 +269,34 @@ const IntakesPage = () => {
           <form onSubmit={handleSubmit} className="manager-form">
             {formError && <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>}
 
+            {!editingId && (
+              <div className="ocr-upload-banner">
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: 'none' }} onChange={handleFileSelect} />
+                {ocrLoading ? (
+                  <div className="ocr-upload-banner__scanning"><Loader2 size={18} className="ocr-spin" /><span>Analyzing document…</span></div>
+                ) : ocrFields ? (
+                  <div className="ocr-upload-banner__done">
+                    <CheckCircle2 size={16} /><span>Fields pre-filled from document</span>
+                    <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setForm(EMPTY_FORM); }}>
+                      <X size={14} /> Clear
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" className="ocr-upload-btn" onClick={() => fileInputRef.current?.click()}>
+                    <ScanLine size={18} /><span>Scan Delivery Note</span>
+                  </button>
+                )}
+                {ocrError && <p className="ocr-upload-banner__error">{ocrError}</p>}
+                {ocrExtras && (
+                  <div className="ocr-extras">
+                    {ocrExtras.client_name   && <span className="ocr-extras__chip"><strong>לקוח:</strong> {ocrExtras.client_name}</span>}
+                    {ocrExtras.carrier_name  && <span className="ocr-extras__chip"><strong>מוביל:</strong> {ocrExtras.carrier_name}</span>}
+                    {ocrExtras.material_hint && <span className="ocr-extras__chip"><strong>חומר:</strong> {ocrExtras.material_hint}</span>}
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeSuppliers.length === 0 && (
               <div className="alert alert--warn">
                 <Info size={15} />
@@ -183,22 +306,41 @@ const IntakesPage = () => {
 
             <div className="form-row">
               <div className="form-field">
-                <label>Supplier <span className="required">*</span></label>
+                <label>Supplier <span className="required">*</span>
+                  {ocrFields?.supplier_id && (
+                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.supplier_id.fill]?.cls}`}>
+                      {CONFIDENCE_LABELS[ocrFields.supplier_id.fill]?.label}
+                    </span>
+                  )}
+                </label>
                 <select name="supplier_id" value={form.supplier_id} onChange={handleChange}>
                   <option value="">— Select supplier —</option>
                   {activeSuppliers.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+                {ocrSupplierHint && <p className="ocr-supplier-hint">💡 Document mentions: <strong>{ocrSupplierHint}</strong></p>}
               </div>
               <div className="form-field">
-                <label>Intake date <span className="required">*</span></label>
+                <label>Intake date <span className="required">*</span>
+                  {ocrFields?.intake_date && (
+                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.intake_date.fill]?.cls}`}>
+                      {CONFIDENCE_LABELS[ocrFields.intake_date.fill]?.label}
+                    </span>
+                  )}
+                </label>
                 <input name="intake_date" type="date" value={form.intake_date} max={today()} onChange={handleChange} />
               </div>
             </div>
 
             <div className="form-field">
-              <label>Delivery note number <span className="required">*</span></label>
+              <label>Delivery note number <span className="required">*</span>
+                {ocrFields?.delivery_note_number && (
+                  <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.delivery_note_number.fill]?.cls}`}>
+                    {CONFIDENCE_LABELS[ocrFields.delivery_note_number.fill]?.label}
+                  </span>
+                )}
+              </label>
               <input
                 name="delivery_note_number" value={form.delivery_note_number} onChange={handleChange}
                 placeholder="e.g. DN-2024-001"
@@ -208,7 +350,13 @@ const IntakesPage = () => {
 
             <div className="form-row">
               <div className="form-field">
-                <label>Material type <span className="required">*</span></label>
+                <label>Material type <span className="required">*</span>
+                  {ocrFields?.material_type && (
+                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.material_type.fill]?.cls}`}>
+                      {CONFIDENCE_LABELS[ocrFields.material_type.fill]?.label}
+                    </span>
+                  )}
+                </label>
                 <select name="material_type" value={form.material_type} onChange={handleChange}>
                   <option value="">— Select type —</option>
                   {MATERIAL_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
@@ -242,7 +390,13 @@ const IntakesPage = () => {
 
             <div className="form-row">
               <div className="form-field">
-                <label>Net weight (kg) <span className="required">*</span></label>
+                <label>Net weight (kg) <span className="required">*</span>
+                  {ocrFields?.net_weight_kg && (
+                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.net_weight_kg.fill]?.cls}`}>
+                      {CONFIDENCE_LABELS[ocrFields.net_weight_kg.fill]?.label}
+                    </span>
+                  )}
+                </label>
                 <input
                   name="net_weight_kg" type="number" step="0.01" min="0.01"
                   value={form.net_weight_kg} onChange={handleChange}

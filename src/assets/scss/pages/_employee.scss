@@ -264,6 +264,33 @@
   to { transform: rotate(360deg); }
 }
 
+// ── OCR extras info panel ─────────────────────────────────────────────────────
+.ocr-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  margin-top: $space-1;
+
+  &__chip {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    padding: 2px $space-2;
+    direction: rtl;
+
+    strong {
+      color: $color-text;
+      margin-left: 4px;
+    }
+  }
+}
+
 // ── OCR supplier hint ─────────────────────────────────────────────────────────
 .ocr-supplier-hint {
   margin: $space-1 0 0;

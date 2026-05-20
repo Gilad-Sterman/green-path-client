@@ -7,6 +7,25 @@ import { fetchSuppliers } from '../../store/slices/suppliersSlice';
 import { analyzeDocument } from '../../api/documents';
 
 const MATERIAL_TYPES   = ['plastic', 'paper', 'metal', 'glass', 'textile', 'rubber', 'mixed', 'other'];
+
+const MATERIAL_ALIASES = {
+  plastic:  ['פלסטיק', 'פלסטיק', 'פי.וי.סי', 'pvc', 'pe', 'pp', 'plastic'],
+  paper:    ['נייר', 'קרטון', 'paper', 'cardboard', 'carton'],
+  metal:    ['מתכת', 'ברזל', 'אלומיניום', 'נחושת', 'metal', 'iron', 'aluminium', 'aluminum', 'copper', 'steel'],
+  glass:    ['זכוכית', 'glass'],
+  textile:  ['טקסטיל', 'בד', 'בגדים', 'textile', 'fabric', 'clothing'],
+  rubber:   ['גומי', 'צמיג', 'rubber', 'tyre', 'tire'],
+  mixed:    ['מעורב', 'mixed'],
+};
+
+const matchMaterialType = (hint = '') => {
+  const lower = hint.toLowerCase();
+  for (const [type, aliases] of Object.entries(MATERIAL_ALIASES)) {
+    if (aliases.some((a) => lower.includes(a.toLowerCase()))) return type;
+  }
+  return null;
+};
+
 const MATERIAL_SOURCES = ['post_consumer', 'post_industrial', 'commercial', 'municipal', 'other'];
 const MATERIAL_STATUSES = ['recycled', 'virgin', 'mixed'];
 
@@ -49,6 +68,7 @@ const NewIntakePage = () => {
   const [ocrError,        setOcrError]        = useState('');
   const [ocrFields,       setOcrFields]       = useState(null);
   const [ocrSupplierHint, setOcrSupplierHint] = useState('');
+  const [ocrExtras,       setOcrExtras]       = useState(null);
 
   useEffect(() => {
     dispatch(fetchSuppliers());
@@ -77,6 +97,7 @@ const NewIntakePage = () => {
     setOcrError('');
     setOcrFields(null);
     setOcrSupplierHint('');
+    setOcrExtras(null);
 
     try {
       const { data } = await analyzeDocument(file);
@@ -114,6 +135,17 @@ const NewIntakePage = () => {
           setForm((p) => ({ ...p, supplier_id: match.id }));
         } else {
           setOcrSupplierHint(fields.supplier_name.value);
+        }
+      }
+
+      const extras = data?.data?.extras || {};
+      if (Object.keys(extras).length > 0) setOcrExtras(extras);
+
+      if (extras.material_hint) {
+        const matched = matchMaterialType(extras.material_hint);
+        if (matched) {
+          filled.material_type = { value: matched, confidence: 0.80, fill: 'auto' };
+          setForm((p) => ({ ...p, material_type: matched }));
         }
       }
 
@@ -232,7 +264,7 @@ const NewIntakePage = () => {
           <div className="ocr-upload-banner__done">
             <CheckCircle2 size={16} />
             <span>Fields pre-filled from document</span>
-            <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setForm(EMPTY_FORM); }}>
+            <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setForm(EMPTY_FORM); }}>
               <X size={14} /> Clear
             </button>
           </div>
@@ -248,6 +280,13 @@ const NewIntakePage = () => {
         )}
         {ocrError && (
           <p className="ocr-upload-banner__error">{ocrError}</p>
+        )}
+        {ocrExtras && (
+          <div className="ocr-extras">
+            {ocrExtras.client_name   && <span className="ocr-extras__chip"><strong>לקוח:</strong> {ocrExtras.client_name}</span>}
+            {ocrExtras.carrier_name  && <span className="ocr-extras__chip"><strong>מוביל:</strong> {ocrExtras.carrier_name}</span>}
+            {ocrExtras.material_hint && <span className="ocr-extras__chip"><strong>חומר:</strong> {ocrExtras.material_hint}</span>}
+          </div>
         )}
       </div>
 
@@ -316,7 +355,13 @@ const NewIntakePage = () => {
 
         <div className="employee-form__row">
           <div className="employee-form__field">
-            <label>Material type <span className="required">*</span></label>
+            <label>Material type <span className="required">*</span>
+              {ocrFields?.material_type && (
+                <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.material_type.fill]?.cls}`}>
+                  {CONFIDENCE_LABELS[ocrFields.material_type.fill]?.label}
+                </span>
+              )}
+            </label>
             <select name="material_type" value={form.material_type} onChange={handleChange}>
               <option value="">— Select —</option>
               {MATERIAL_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
