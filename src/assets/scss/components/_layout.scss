@@ -6,7 +6,7 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: $color-bg;
+  // background: $color-bg;
 
   &--desktop {
     flex-direction: row;
@@ -84,15 +84,35 @@
   transition: background $transition-fast, color $transition-fast;
 
   &:hover {
-    background: $green-50;
+    background: $purple-50;
     color: $color-primary;
   }
 
   &--active {
-    background: $green-50;
+    background: $purple-50;
     color: $color-primary;
     font-weight: $font-weight-semi;
   }
+}
+
+.sidebar__add-factory {
+  padding: $space-3 $space-3 $space-2;
+}
+
+.sidebar__add-btn {
+  @include flex-center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-3 $space-4;
+  background: $color-gray;
+  color: $color-text-muted;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semi;
+  text-decoration: none;
+  transition: background $transition-fast;
+
+  &:hover { background: $color-primary-hover; color: $color-gray-light; }
 }
 
 .sidebar__badge-wrap {
@@ -242,8 +262,8 @@
   font-weight: $font-weight-semi;
   white-space: nowrap;
 
-  &--green   { background: $green-50;  color: $color-primary; }
-  &--admin   { background: #ede9fe;    color: #6d28d9; }
+  &--green   { background: $purple-50;  color: $color-primary; }
+  &--admin   { background: $blue-light;    color: $blue-dark; }
   &--warn    { background: #fff7ed;    color: #c2410c; }
   &--neutral { background: #f3f4f6;    color: #6b7280; }
   &--error   { background: #fef2f2;    color: $color-error; }

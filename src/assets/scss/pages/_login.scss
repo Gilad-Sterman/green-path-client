@@ -4,12 +4,11 @@
 .login-page {
   min-height: 100vh;
   @include flex-center;
-  background: linear-gradient(160deg, $green-50 0%, #fff 60%);
+  background: linear-gradient(160deg, $purple-50 0%, #fff 60%);
   padding: $space-4;
 }
 
 .login-card {
-  @include card;
   width: 100%;
   max-width: 440px;
   padding: $space-10 $space-8;
@@ -20,16 +19,23 @@
 }
 
 .login-brand {
-  @include flex-center;
-  gap: $space-3;
-  margin-bottom: $space-10;
-
-  svg { color: $color-primary; }
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  align-items: center;
+  margin: 0 auto;
+  margin-bottom: $space-6;
+  
+  svg { 
+    border: 2px solid $color-text;
+    border-radius: $radius-md;
+    height: 110px;
+    width: 110px;
+  }
 
   span {
     font-size: $font-size-xl;
     font-weight: $font-weight-bold;
-    color: $color-primary;
     letter-spacing: -0.5px;
   }
 }
@@ -37,11 +43,12 @@
 .login-header {
   margin-bottom: $space-6;
 
-  h2 {
-    font-size: $font-size-2xl;
+  h2, h3 {
+    font-size: $font-size-xl;
     font-weight: $font-weight-bold;
     color: $color-text;
     margin-bottom: $space-2;
+    text-align: center;
   }
 
   p {
@@ -97,6 +104,8 @@
 
   input {
     @include input-base;
+    background-color: $color-gray;
+    border-radius: 0;
     width: 100%;
     padding-left: calc(#{$space-4} + 18px + #{$space-3});
   }
@@ -106,27 +115,26 @@
 .phone-input-wrap {
   display: flex;
   align-items: stretch;
+  direction: ltr;
   border: 1.5px solid $color-border;
-  border-radius: $radius-md;
   overflow: hidden;
-  background: $color-surface;
+  background: $color-gray;
   transition: border-color $transition-fast, box-shadow $transition-fast;
 
   &:focus-within {
-    border-color: $color-primary;
-    box-shadow: 0 0 0 3px rgba($color-primary, .12);
+    border-color: transparent;
+    // box-shadow: 0 0 0 3px rgba($color-primary, .12);
   }
 }
 
 .country-select {
   appearance: none;
-  background: $green-50;
+  background: $color-surface;
   border: none;
   outline: none;
   padding: 0 $space-3;
   font-size: $font-size-sm;
   font-weight: $font-weight-medium;
-  color: $color-primary;
   cursor: pointer;
   white-space: nowrap;
   min-width: 100px;
@@ -195,4 +203,123 @@
   font-size: $font-size-sm;
   color: $color-primary;
   margin-bottom: $space-2;
+}
+
+// ── Tooltip / validation error bubble ─────────────────────────────────────────
+.tooltip-bubble {
+  background: $color-error-bg;
+  color: $color-error;
+  border: 1px solid rgba($color-error, .2);
+  border-radius: $radius-md;
+  padding: $space-3 $space-4;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.5;
+  margin-bottom: $space-4;
+  direction: rtl;
+  text-align: right;
+}
+
+// ── Terms checkbox row ─────────────────────────────────────────────────────────
+.terms-row {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+  direction: rtl;
+
+  input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: $color-primary;
+    cursor: pointer;
+  }
+
+  label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+}
+
+// ── Pill login button (replaces btn-primary on login screen) ──────────────────
+.btn-login {
+  @include flex-center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-4 $space-6;
+  border: none;
+  border-radius: $radius-full;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semi;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast, opacity $transition-fast;
+
+  &--active {
+    background: $color-primary;
+    color: #ffffff;
+
+    &:hover { background: $color-primary-hover; }
+    &:active { transform: scale(0.99); }
+  }
+
+  &--disabled {
+    background: #f0f0f0;
+    color: #b3b3b3;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &--secondary {
+    font-size: $font-size-sm;
+    padding: $space-3 $space-6;
+    margin-top: $space-1;
+  }
+}
+
+// ── OTP step: info header + back link ─────────────────────────────────────────
+.otp-info {
+  margin-bottom: $space-4;
+  direction: rtl;
+  text-align: center;
+
+  p {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text;
+    margin-bottom: $space-1;
+
+    span {
+      direction: ltr;
+    }
+  }
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color $transition-fast;
+
+  &:hover { color: $color-primary-hover; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// ── OTP countdown timer ────────────────────────────────────────────────────────
+.otp-countdown {
+  text-align: center;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semi;
+  color: $color-text-muted;
+  letter-spacing: 0.05em;
+  direction: ltr;
+  padding-top: $space-1;
 }

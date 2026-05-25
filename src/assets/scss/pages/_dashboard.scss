@@ -35,7 +35,9 @@
 }
 
 .kpi-card {
-  @include card;
+  // @include card;
+  background-color: $color-gray-light;
+  border-radius: $radius-md;
   display: flex;
   flex-direction: column;
   gap: $space-1;
@@ -103,7 +105,7 @@
   width: 40px;
   height: 40px;
   border-radius: $radius-md;
-  background: $green-50;
+  background: $purple-50;
   color: $color-primary;
   flex-shrink: 0;
 
@@ -122,6 +124,67 @@
 .quick-link__desc {
   font-size: $font-size-xs;
   color: $color-text-muted;
+}
+
+// ── Header actions cluster ────────────────────────────────────────────────────
+.dashboard__header-actions {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+// ── Date range filter pills ───────────────────────────────────────────────────
+.dashboard__date-filter {
+  display: flex;
+  gap: $space-2;
+  margin-bottom: $space-4;
+  flex-wrap: wrap;
+}
+
+.date-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  padding: $space-2;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color $transition-fast, color $transition-fast, background $transition-fast;
+
+  &:hover       { border-color: $color-gray; color: $color-primary; }
+  &--active     { background: $color-gray-light; border-color: $color-gray-light; color: $color-text; }
+}
+
+// ── Entity type tabs ──────────────────────────────────────────────────────────
+.dashboard__tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: $space-5;
+  gap: $space-2;
+}
+
+.dashboard__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-3 $space-5;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: none;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-muted;
+  margin-bottom: -2px;
+  font-family: inherit;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &--active  { color: $color-text; background-color: $color-gray-light; border-color: $color-gray-light; }
 }
 
 // ── Employee mobile dashboard ─────────────────────────────────────────────────

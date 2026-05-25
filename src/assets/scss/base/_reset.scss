@@ -15,10 +15,11 @@ body {
   font-family: $font-sans;
   font-size: $font-size-base;
   color: $color-text;
-  background-color: $color-bg;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  direction: rtl;
+  text-align: right;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -33,6 +34,16 @@ button { font-family: inherit; cursor: pointer; }
 input, textarea, select {
   font-family: inherit;
   font-size: inherit;
+}
+
+// ── Inputs that must always render LTR regardless of global RTL ──────────────
+input[type="tel"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="text"][inputmode="numeric"] {
+  direction: ltr;
+  text-align: left;
 }
 
 a { color: inherit; text-decoration: none; }

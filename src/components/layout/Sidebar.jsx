@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   Leaf, LayoutDashboard, Package, Layers, Truck,
   Award, Building2, Users, Box, Flag, BarChart3,
-  HeadphonesIcon, ChevronDown,
+  HeadphonesIcon, ChevronDown, Plus,
 } from 'lucide-react';
 
 const MANAGER_SECTIONS = [
@@ -11,16 +11,16 @@ const MANAGER_SECTIONS = [
     id: 'operations',
     label: 'Operations',
     items: [
-      { path: '/intakes',   icon: Package, label: 'Intakes' },
-      { path: '/batches',   icon: Layers,  label: 'Batches' },
-      { path: '/shipments', icon: Truck,   label: 'Shipments' },
+      { path: '/intakes', icon: Package, label: 'Intakes' },
+      { path: '/batches', icon: Layers, label: 'Batches' },
+      { path: '/shipments', icon: Truck, label: 'Shipments' },
     ],
   },
   {
     id: 'finance',
     label: 'Finance',
     items: [
-      { path: '/credits', icon: Award,     label: 'Credits' },
+      { path: '/credits', icon: Award, label: 'Credits' },
       { path: '/reports', icon: BarChart3, label: 'Reports' },
     ],
   },
@@ -29,26 +29,26 @@ const MANAGER_SECTIONS = [
     label: 'Partners',
     items: [
       { path: '/suppliers', icon: Building2, label: 'Suppliers' },
-      { path: '/customers', icon: Users,     label: 'Customers' },
-      { path: '/products',  icon: Box,       label: 'Products' },
+      { path: '/customers', icon: Users, label: 'Customers' },
+      { path: '/products', icon: Box, label: 'Products' },
     ],
   },
   {
     id: 'management',
     label: 'Management',
     items: [
-      { path: '/flags', icon: Flag,  label: 'Flags' },
-      { path: '/team',  icon: Users, label: 'Team' },
+      { path: '/flags', icon: Flag, label: 'Flags' },
+      { path: '/team', icon: Users, label: 'Team' },
     ],
   },
 ];
 
 const ADMIN_NAV = [
-  { path: '/admin',            icon: LayoutDashboard,  label: 'Overview',   end: true },
-  { path: '/admin/factories',  icon: Building2,        label: 'Factories' },
-  { path: '/admin/users',      icon: Users,            label: 'All Users' },
-  { path: '/admin/reports',    icon: BarChart3,        label: 'Reports' },
-  { path: '/admin/support',    icon: HeadphonesIcon,   label: 'Support' },
+  { path: '/admin', icon: BarChart3, label: 'מטריקות', end: true },
+  { path: '/admin/factories', icon: Building2, label: 'מפעלים' },
+  { path: '/admin/users', icon: Users, label: 'משתמשים' },
+  { path: '/admin/reports', icon: LayoutDashboard, label: 'דוחות' },
+  { path: '/admin/support', icon: HeadphonesIcon, label: 'תמיכה' },
 ];
 
 const STORAGE_KEY = 'gp_sidebar_open';
@@ -93,6 +93,12 @@ const Sidebar = ({ role }) => {
           <Leaf size={22} strokeWidth={2.5} />
           <span>GreenPath</span>
         </div>
+        <div className="sidebar__add-factory">
+          <NavLink to="/admin/factories?new=1" className="sidebar__add-btn">
+            <Plus size={16} />
+            <span>יצירת חשבון מפעל</span>
+          </NavLink>
+        </div>
         <nav className="sidebar__nav">
           {ADMIN_NAV.map(({ path, icon: Icon, label, end }) => (
             <NavLink
@@ -106,9 +112,6 @@ const Sidebar = ({ role }) => {
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar__badge-wrap">
-          <span className="badge badge--admin">Internal Admin</span>
-        </div>
       </aside>
     );
   }

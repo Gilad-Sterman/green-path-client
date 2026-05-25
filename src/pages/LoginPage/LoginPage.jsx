@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { Leaf, Phone, MessageSquare, ArrowRight, CheckCircle } from 'lucide-react';
+import { Leaf, Phone, MessageSquare, ArrowRight } from 'lucide-react';
 import { sendOtpThunk, verifyOtpThunk } from '../../store/slices/authSlice';
 
 const COUNTRY_CODES = [
@@ -10,27 +10,63 @@ const COUNTRY_CODES = [
   { code: '+49',  label: '🇩🇪  +49',  placeholder: '15123456789', minLen: 10 },
 ];
 
+const COUNTDOWN_START = 59;
+
+const ERRORS = {
+  phone_format:  'שגיאה | יש להזין מספר טלפון תקין בעל קידומת ישראלית (ולא 0).',
+  phone_invalid: 'שגיאה | יש להזין מספר טלפון תקין.',
+  terms:         'שגיאה | יש לאשר תנאי שימוש ומדיניות הפרטיות.',
+  code_invalid:  'שגיאה | יש להזין את הקוד שקיבלת למכשיר שהזנת.',
+  code_limit:    'שגיאה | ניתן לבצע עד שלוש ניסיונות התחברות. יש להמתין 15 דקות בטרם ניסיון חוזר.',
+  code_expired:  'שגיאה | פג תוקף הקוד, נא לבקש קוד חדש.',
+  code_wrong:    'שגיאה | קוד שגוי, נסו שוב.',
+};
+
+const mapServerError = (err) => {
+  const msg = typeof err === 'string' ? err.toLowerCase() : '';
+  if (msg.includes('expired'))                                     return 'code_expired';
+  if (msg.includes('attempt') || msg.includes('limit') || msg.includes('too many')) return 'code_limit';
+  if (msg.includes('invalid') || msg.includes('incorrect') || msg.includes('wrong')) return 'code_wrong';
+  return 'code_invalid';
+};
+
+const formatCountdown = (secs) =>
+  `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
 const LoginPage = () => {
   const dispatch = useDispatch();
 
-  const [step, setStep]             = useState('phone'); // 'phone' | 'otp'
-  const [countryCode, setCountry]   = useState('+972');
-  const [localNumber, setLocal]     = useState('');
-  const [phone, setPhone]           = useState(''); // full E.164, set on submit
-  const [code, setCode]             = useState('');
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
+  const [step, setStep]           = useState('phone');
+  const [countryCode, setCountry] = useState('+972');
+  const [localNumber, setLocal]   = useState('');
+  const [phone, setPhone]         = useState('');
+  const [code, setCode]           = useState('');
+  const [termsAccepted, setTerms] = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [errorKey, setError]      = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const currentCountry = COUNTRY_CODES.find((c) => c.code === countryCode);
+  const stripped       = localNumber.replace(/^0/, '');
+  const isPhoneValid   = stripped.length >= (currentCountry?.minLen ?? 7);
+  const canSend        = isPhoneValid && termsAccepted;
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError('');
 
-    const stripped = localNumber.replace(/^0/, '');
-    const minLen = currentCountry?.minLen ?? 7;
-    if (stripped.length < minLen) {
-      setError(`Please enter a valid ${minLen}-digit number for ${countryCode}.`);
+    if (!isPhoneValid) {
+      setError(countryCode === '+972' ? 'phone_format' : 'phone_invalid');
+      return;
+    }
+    if (!termsAccepted) {
+      setError('terms');
       return;
     }
 
@@ -40,8 +76,23 @@ const LoginPage = () => {
     try {
       await dispatch(sendOtpThunk(fullPhone)).unwrap();
       setStep('otp');
+      setCountdown(COUNTDOWN_START);
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Failed to send code. Check the number and try again.');
+      setError('phone_invalid');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    setCode('');
+    setLoading(true);
+    try {
+      await dispatch(sendOtpThunk(phone)).unwrap();
+      setCountdown(COUNTDOWN_START);
+    } catch (err) {
+      setError('phone_invalid');
     } finally {
       setLoading(false);
     }
@@ -53,9 +104,8 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await dispatch(verifyOtpThunk({ phone_number: phone, code })).unwrap();
-      // Auth state updates → App.jsx router redirects to /
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Invalid code. Please try again.');
+      setError(mapServerError(err));
     } finally {
       setLoading(false);
     }
@@ -66,6 +116,7 @@ const LoginPage = () => {
     setCode('');
     setError('');
     setPhone('');
+    setCountdown(0);
   };
 
   return (
@@ -74,40 +125,37 @@ const LoginPage = () => {
 
         <div className="login-brand">
           <Leaf size={28} strokeWidth={2.5} />
-          <span>GreenPath</span>
+          <span>Green Path</span>
         </div>
 
         <div className="login-header">
-          <h2>{step === 'phone' ? 'Sign in' : 'Enter your code'}</h2>
-          <p>
-            {step === 'phone'
-              ? 'Enter your phone number to receive a 6-digit verification code.'
-              : `We sent a code to ${phone}. It expires in 10 minutes.`}
-          </p>
+          <h3>ברוכים הבאים ל-Green Path</h3>
         </div>
 
-        {error && <div className="login-error">{error}</div>}
+        {errorKey && (
+          <div className="tooltip-bubble">{ERRORS[errorKey]}</div>
+        )}
 
         {step === 'phone' ? (
           <form onSubmit={handleSendOtp} className="login-form">
             <div className="form-field">
-              <label htmlFor="local-number">Phone number</label>
+              <label htmlFor="local-number">מספר טלפון</label>
               <div className="phone-input-wrap">
                 <select
                   className="country-select"
                   value={countryCode}
                   onChange={(e) => setCountry(e.target.value)}
                   disabled={loading}
-                  aria-label="Country code"
+                  aria-label="קידומת מדינה"
                 >
                   {COUNTRY_CODES.map((c) => (
                     <option key={c.code} value={c.code}>{c.label}</option>
                   ))}
                 </select>
                 <div className="phone-divider" />
-                <div className="phone-input-icon">
+                {/* <div className="phone-input-icon">
                   <Phone size={16} />
-                </div>
+                </div> */}
                 <input
                   id="local-number"
                   type="tel"
@@ -119,23 +167,40 @@ const LoginPage = () => {
                   disabled={loading}
                 />
               </div>
-              <span className="field-hint">Enter without leading zero. Your number must already be registered by your manager.</span>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={loading || !localNumber}>
-              {loading ? 'Sending…' : 'Send verification code'}
-              {!loading && <ArrowRight size={17} />}
+            <div className="terms-row">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={(e) => setTerms(e.target.checked)}
+                disabled={loading}
+              />
+              <label htmlFor="terms">
+                אני מאשר/ת את תנאי השימוש ומדיניות הפרטיות של Green Path
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className={`btn-login${canSend && !loading ? ' btn-login--active' : ' btn-login--disabled'}`}
+              disabled={loading || !canSend}
+            >
+              {loading ? '...שולח' : 'שלחו לי קוד'}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="login-form">
-            <div className="otp-sent-info">
-              <CheckCircle size={16} />
-              Code sent to {phone}
+            <div className="otp-info">
+              <p>שלחנו קוד למספר <span>{phone}</span></p>
+              <button type="button" className="link-btn" onClick={handleBack} disabled={loading}>
+                לא המספר הנכון?
+              </button>
             </div>
 
             <div className="form-field">
-              <label htmlFor="code">6-digit code</label>
+              <label htmlFor="code">קוד</label>
               <div className="input-icon-wrap">
                 <span className="input-icon"><MessageSquare size={17} /></span>
                 <input
@@ -144,7 +209,7 @@ const LoginPage = () => {
                   inputMode="numeric"
                   pattern="[0-9]{6}"
                   maxLength={6}
-                  placeholder="000000"
+                  placeholder="••••••"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                   autoFocus
@@ -156,16 +221,24 @@ const LoginPage = () => {
 
             <button
               type="submit"
-              className="btn-primary"
+              className={`btn-login${code.length === 6 && !loading ? ' btn-login--active' : ' btn-login--disabled'}`}
               disabled={loading || code.length !== 6}
             >
-              {loading ? 'Verifying…' : 'Verify & sign in'}
-              {!loading && <ArrowRight size={17} />}
+              {loading ? '...מאמת' : 'כניסה'}
             </button>
 
-            <button type="button" className="btn-ghost" onClick={handleBack} disabled={loading}>
-              Use a different number
+            <button
+              type="button"
+              className={`btn-login ${countdown === 0 && !loading ? ' btn-login--active' : ' btn-login--disabled'}`}
+              disabled={loading || countdown > 0}
+              onClick={handleResendOtp}
+            >
+              לא קיבלתי, שלחו שוב
             </button>
+
+            {countdown > 0 && (
+              <div className="otp-countdown">{formatCountdown(countdown)}</div>
+            )}
           </form>
         )}
       </div>

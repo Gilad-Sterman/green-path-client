@@ -3,9 +3,9 @@ import { LogOut, Bell, Leaf } from 'lucide-react';
 import { logoutThunk } from '../../store/slices/authSlice';
 
 const ROLE_LABELS = {
-  employee:       'Employee',
-  manager:        'Manager',
-  internal_admin: 'Admin',
+  employee:       'עובד',
+  manager:        'מנהל',
+  internal_admin: 'אדמין',
 };
 
 const Header = ({ showBrand = false }) => {

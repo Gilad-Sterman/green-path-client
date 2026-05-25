@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
-import { Building2, Plus, X, CheckCircle, AlertCircle, MapPin, Users, Eye, RefreshCw } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Building2, Plus, X, CheckCircle, AlertCircle, MapPin, Users, Eye, RefreshCw, ChevronDown, Lock, Unlock, Flag, BarChart3 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
-import { fetchFactories, createFactoryThunk, clearFactoriesError } from '../../store/slices/factoriesSlice';
+import { fetchFactories, createFactoryThunk, clearFactoriesError, suspendFactoryThunk, unsuspendFactoryThunk } from '../../store/slices/factoriesSlice';
 import useRelativeTime from '../../hooks/useRelativeTime';
 
 const STATUS_BADGE = {
   active:    'badge--green',
   suspended: 'badge--warn',
   inactive:  'badge--neutral',
+};
+
+const STATUS_LABEL = {
+  active:    'פעיל',
+  suspended: 'מושהה',
+  inactive:  'לא פעיל',
 };
 
 const COUNTRY_CODES = [
@@ -19,19 +25,36 @@ const COUNTRY_CODES = [
   { code: '+49',  label: '🇩🇪 +49',  minLen: 10 },
 ];
 
+const formatRelativeTime = (ts) => {
+  if (!ts) return '—';
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1)  return 'עכשיו';
+  if (mins < 60) return `לפני ${mins} דק'`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `לפני ${hrs} שע'`;
+  const days = Math.floor(hrs / 24);
+  return days < 7 ? `לפני ${days} ימים` : new Date(ts).toLocaleDateString('he-IL');
+};
+
 const EMPTY_FORM = {
   name: '', company_id_number: '', address: '',
   geofence_lat: '', geofence_lng: '', geofence_radius_meters: '',
-  manager_name: '', manager_country: '+972', manager_local: '',
+  manager_name: '', manager_email: '', manager_country: '+972', manager_local: '',
 };
 
 const FactoriesPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { list: factories, loading, error, lastFetched } = useSelector((state) => state.factories);
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [showForm, setShowForm]   = useState(false);
+  const [showGeo, setShowGeo]         = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
   const [form, setForm]           = useState(EMPTY_FORM);
   const [saving, setSaving]       = useState(false);
   const [successMsg, setSuccess]  = useState('');
@@ -40,6 +63,13 @@ const FactoriesPage = () => {
   useEffect(() => {
     dispatch(fetchFactories());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowForm(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -51,18 +81,22 @@ const FactoriesPage = () => {
     setFormError('');
 
     if (!form.name.trim() || !form.company_id_number.trim() || !form.address.trim()) {
-      setFormError('Factory name, company ID, and address are required.');
+      setFormError('שם מפעל, מזהה חברה וכתובת הם שדות חובה.');
       return;
     }
-    if (!form.manager_name.trim() || !form.manager_local.trim()) {
-      setFormError('Manager name and phone number are required.');
+    if (!form.manager_name.trim() || !form.manager_local.trim() || !form.manager_email.trim()) {
+      setFormError('שם מנהל/ת, אימייל ומספר טלפון הם שדות חובה.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.manager_email.trim())) {
+      setFormError('יש להזין כתובת אימייל תקינה.');
       return;
     }
 
     const stripped = form.manager_local.replace(/^0/, '');
     const country   = COUNTRY_CODES.find((c) => c.code === form.manager_country);
     if (stripped.length < (country?.minLen ?? 7)) {
-      setFormError(`Manager phone must be at least ${country?.minLen ?? 7} digits for ${form.manager_country}.`);
+      setFormError(`מספר הטלפון חייב להכיל לפחות ${country?.minLen ?? 7} ספרות עבור ${form.manager_country}.`);
       return;
     }
 
@@ -72,6 +106,7 @@ const FactoriesPage = () => {
       address:            form.address.trim(),
       admin_user: {
         full_name:    form.manager_name.trim(),
+        email:        form.manager_email.trim(),
         phone_number: `${form.manager_country}${stripped}`,
       },
     };
@@ -90,13 +125,35 @@ const FactoriesPage = () => {
     setSaving(false);
 
     if (createFactoryThunk.fulfilled.match(result)) {
-      setSuccess(`Factory "${form.name}" created successfully.`);
+      setSuccess(`המפעל "${form.name}" נוצר בהצלחה.`);
       setForm(EMPTY_FORM);
       setShowForm(false);
       setTimeout(() => setSuccess(''), 4000);
     } else {
-      setFormError(result.payload || 'Failed to create factory.');
+      setFormError(result.payload || 'שגיאה ביצירת המפעל.');
     }
+  };
+
+  const handleSuspendConfirm = async () => {
+    if (!confirmAction) return;
+    setActionLoading(true);
+    const thunk = confirmAction.type === 'suspend'
+      ? suspendFactoryThunk({ id: confirmAction.factory.id, reason: suspendReason })
+      : unsuspendFactoryThunk(confirmAction.factory.id);
+    const result = await dispatch(thunk);
+    setActionLoading(false);
+    if (!result.error) {
+      setSuccess(
+        confirmAction.type === 'suspend'
+          ? `המפעל "${confirmAction.factory.name}" נחסם בהצלחה.`
+          : `המפעל "${confirmAction.factory.name}" שוחרר בהצלחה.`
+      );
+      setTimeout(() => setSuccess(''), 4000);
+    } else {
+      setFormError(result.payload || 'שגיאה בביצוע הפעולה.');
+    }
+    setConfirmAction(null);
+    setSuspendReason('');
   };
 
   const handleCloseForm = () => {
@@ -110,8 +167,8 @@ const FactoriesPage = () => {
     <div className="admin-page">
       <div className="admin-page__header">
         <div>
-          <h1>Factories</h1>
-          <p className="page-subtitle">Manage recycling facilities registered on the platform</p>
+          <h1>מפעלים</h1>
+          <p className="page-subtitle">ניהול מפעלי המיחזור הרשומים במערכת</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div className="refresh-group">
@@ -119,7 +176,7 @@ const FactoriesPage = () => {
             <button
               className="btn-ghost btn-ghost--icon"
               onClick={() => dispatch(fetchFactories({ force: true }))}
-              title="Refresh"
+              title="רענון"
               disabled={loading}
             >
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
@@ -127,7 +184,7 @@ const FactoriesPage = () => {
           </div>
           <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
             <Plus size={16} />
-            New Factory
+            מפעל חדש
           </button>
         </div>
       </div>
@@ -149,8 +206,8 @@ const FactoriesPage = () => {
       {showForm && (
         <div className="form-card">
           <div className="form-card__header">
-            <h3>Create New Factory</h3>
-            <button className="icon-btn" onClick={handleCloseForm} aria-label="Close">
+            <h3>יצירת מפעל חדש</h3>
+            <button className="icon-btn" onClick={handleCloseForm} aria-label="סגור">
               <X size={18} />
             </button>
           </div>
@@ -163,121 +220,151 @@ const FactoriesPage = () => {
               </div>
             )}
 
-            <div className="form-row">
-              <div className="form-field">
-                <label htmlFor="name">Factory name <span className="required">*</span></label>
-                <input
-                  id="name" name="name" type="text"
-                  placeholder="e.g. Green Recycling Ltd."
-                  value={form.name} onChange={handleChange} required
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="company_id_number">Company ID number <span className="required">*</span></label>
-                <input
-                  id="company_id_number" name="company_id_number" type="text"
-                  placeholder="e.g. 515234567"
-                  value={form.company_id_number} onChange={handleChange} required
-                />
-              </div>
-            </div>
+            <div className="form-split">
+              {/* ── פרטי המפעל ── */}
+              <div className="form-col">
+                <div className="form-col__header">
+                  <h4 className="form-col__title">פרטי המפעל</h4>
+                  <p className="form-col__subtitle">כך תוכלו למצוא את המפעל במערכת</p>
+                </div>
 
-            <div className="form-field">
-              <label htmlFor="address">Address <span className="required">*</span></label>
-              <input
-                id="address" name="address" type="text"
-                placeholder="e.g. 12 Industrial Zone, Tel Aviv"
-                value={form.address} onChange={handleChange} required
-              />
-            </div>
-
-            <div className="form-section-label">
-              <Users size={14} />
-              Factory Manager
-            </div>
-
-            <div className="form-row">
-              <div className="form-field">
-                <label htmlFor="manager_name">Manager full name <span className="required">*</span></label>
-                <input
-                  id="manager_name" name="manager_name" type="text"
-                  placeholder="e.g. David Cohen"
-                  value={form.manager_name} onChange={handleChange} required
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="manager_local">Manager phone <span className="required">*</span></label>
-                <div className="phone-input-wrap">
-                  <select
-                    className="country-select"
-                    value={form.manager_country}
-                    onChange={(e) => setForm((p) => ({ ...p, manager_country: e.target.value }))}
-                  >
-                    {COUNTRY_CODES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.label}</option>
-                    ))}
-                  </select>
-                  <span className="phone-divider" />
+                <div className="form-field">
+                  <label htmlFor="name">שם מפעל <span className="required">*</span></label>
                   <input
-                    id="manager_local" name="manager_local" type="tel"
-                    placeholder="501234567"
-                    value={form.manager_local}
-                    onChange={(e) => setForm((p) => ({ ...p, manager_local: e.target.value.replace(/[^0-9]/g, '') }))}
+                    id="name" name="name" type="text"
+                    placeholder='לדוגמה: מיחזור ירוק בע"מ'
+                    value={form.name} onChange={handleChange} required
                   />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="company_id_number">מזהה (ח.פ.) <span className="required">*</span></label>
+                  <input
+                    id="company_id_number" name="company_id_number" type="text"
+                    placeholder="לדוגמה: 515234567"
+                    value={form.company_id_number} onChange={handleChange} required
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="address">כתובת המפעל <span className="required">*</span></label>
+                  <input
+                    id="address" name="address" type="text"
+                    placeholder="לדוגמה: 12 אזור תעשייה, תל אביב"
+                    value={form.address} onChange={handleChange} required
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="form-section-label form-section-label--toggle"
+                  onClick={() => setShowGeo((v) => !v)}
+                >
+                  <MapPin size={14} />
+                  מיקום (אופציונלי)
+                  <ChevronDown
+                    size={14}
+                    className={`geo-chevron${showGeo ? ' geo-chevron--open' : ''}`}
+                  />
+                </button>
+
+                {showGeo && <div>
+                  <div className="form-field">
+                    <label htmlFor="geofence_lat">קו רוחב</label>
+                    <input
+                      id="geofence_lat" name="geofence_lat" type="number" step="any"
+                      placeholder="32.0853"
+                      value={form.geofence_lat} onChange={handleChange}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="geofence_lng">קו אורך</label>
+                    <input
+                      id="geofence_lng" name="geofence_lng" type="number" step="any"
+                      placeholder="34.7818"
+                      value={form.geofence_lng} onChange={handleChange}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="geofence_radius_meters">רדיוס (מטרים)</label>
+                    <input
+                      id="geofence_radius_meters" name="geofence_radius_meters" type="number"
+                      placeholder="500"
+                      value={form.geofence_radius_meters} onChange={handleChange}
+                    />
+                  </div>
+                </div>}
+              </div>
+
+              <div className="form-col-divider" />
+
+              {/* ── פרטי איש הקשר ── */}
+              <div className="form-col">
+                <div className="form-col__header">
+                  <h4 className="form-col__title">פרטי איש הקשר</h4>
+                  <p className="form-col__subtitle">יסומנו כמשתמש/ת הראשי/ת במפעל</p>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="manager_name">שם מנהל/ת המפעל <span className="required">*</span></label>
+                  <input
+                    id="manager_name" name="manager_name" type="text"
+                    placeholder="לדוגמה: דוד כהן"
+                    value={form.manager_name} onChange={handleChange} required
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="manager_email">אימייל <span className="required">*</span></label>
+                  <input
+                    id="manager_email" name="manager_email" type="email"
+                    placeholder="לדוגמה: david@factory.co.il"
+                    value={form.manager_email} onChange={handleChange} required
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="manager_local">טלפון מנהל/ת <span className="required">*</span></label>
+                  <div className="phone-input-wrap">
+                    <select
+                      className="country-select"
+                      value={form.manager_country}
+                      onChange={(e) => setForm((p) => ({ ...p, manager_country: e.target.value }))}
+                    >
+                      {COUNTRY_CODES.map((c) => (
+                        <option key={c.code} value={c.code}>{c.label}</option>
+                      ))}
+                    </select>
+                    <span className="phone-divider" />
+                    <input
+                      id="manager_local" name="manager_local" type="tel"
+                      placeholder="501234567"
+                      value={form.manager_local}
+                      onChange={(e) => setForm((p) => ({ ...p, manager_local: e.target.value.replace(/[^0-9]/g, '') }))}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="form-section-label">
-              <MapPin size={14} />
-              Geofence (optional)
-            </div>
-
-            <div className="form-row form-row--three">
-              <div className="form-field">
-                <label htmlFor="geofence_lat">Latitude</label>
-                <input
-                  id="geofence_lat" name="geofence_lat" type="number" step="any"
-                  placeholder="32.0853"
-                  value={form.geofence_lat} onChange={handleChange}
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="geofence_lng">Longitude</label>
-                <input
-                  id="geofence_lng" name="geofence_lng" type="number" step="any"
-                  placeholder="34.7818"
-                  value={form.geofence_lng} onChange={handleChange}
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="geofence_radius_meters">Radius (meters)</label>
-                <input
-                  id="geofence_radius_meters" name="geofence_radius_meters" type="number"
-                  placeholder="500"
-                  value={form.geofence_radius_meters} onChange={handleChange}
-                />
-              </div>
-            </div>
-
             <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={handleCloseForm} disabled={saving}>
-                Cancel
-              </button>
+              {/* <button type="button" className="btn-ghost" onClick={handleCloseForm} disabled={saving}>
+                ביטול
+              </button> */}
               <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'Creating…' : 'Create factory'}
+                {saving ? '...יוצר' : 'הוספת מפעל'}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {loading && <div className="loading-row">Loading factories…</div>}
+      {loading && <div className="loading-row">...טוען מפעלים</div>}
 
       {!loading && factories.length === 0 && !showForm && (
         <div className="empty-state">
           <Building2 size={40} />
-          <p>No factories yet. Create the first one.</p>
+          <p>אין מפעלים עדיין. צרו את הראשון.</p>
         </div>
       )}
 
@@ -286,12 +373,15 @@ const FactoriesPage = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Company ID</th>
-                <th>Address</th>
-                <th>Users</th>
-                <th>Geofence</th>
-                <th>Status</th>
+                <th>שם מפעל</th>
+                <th>ח.פ.</th>
+                <th>איש קשר</th>
+                <th>סטטוס</th>
+                <th>עובדים</th>
+                <th>מנהלים</th>
+                <th>דגלים</th>
+                <th>קרדיטים (ק"ג)</th>
+                <th>פעילות אחרונה</th>
                 <th></th>
               </tr>
             </thead>
@@ -299,30 +389,87 @@ const FactoriesPage = () => {
               {factories.map((f) => (
                 <tr key={f.id}>
                   <td className="td-primary">
-                    <Link to={`/admin/factories/${f.id}`} className="table-link">{f.name}</Link>
+                    <Link to={`/admin/factories/${f.id}`}>{f.name}</Link>
                   </td>
                   <td>{f.company_id_number}</td>
-                  <td className="td-muted">{f.address}</td>
-                  <td>{f.active_user_count ?? 0}</td>
+                  <td>{f.contact_name || <span className="td-muted">—</span>}</td>
                   <td>
-                    {f.geofence_center
-                      ? `${f.geofence_center.lat}, ${f.geofence_center.lng}`
+                    <span className={`badge ${STATUS_BADGE[f.status] || 'badge--neutral'}`}>
+                      {STATUS_LABEL[f.status] || f.status}
+                    </span>
+                  </td>
+                  <td>{f.employee_count ?? 0}</td>
+                  <td>{f.manager_count ?? 0}</td>
+                  <td>
+                    {parseInt(f.open_flags_count) > 0
+                      ? <span className="badge badge--warn">{f.open_flags_count}</span>
                       : <span className="td-muted">—</span>}
                   </td>
                   <td>
-                    <span className={`badge ${STATUS_BADGE[f.status] || 'badge--neutral'}`}>
-                      {f.status}
-                    </span>
+                    {parseFloat(f.total_credits_kg) > 0
+                      ? Number(f.total_credits_kg).toLocaleString('he-IL')
+                      : <span className="td-muted">—</span>}
                   </td>
+                  <td className="td-muted">{formatRelativeTime(f.last_activity)}</td>
                   <td>
                     <RowActionsMenu items={[
-                      { label: 'View details', icon: <Eye size={14} />, onClick: () => navigate(`/admin/factories/${f.id}`) },
-                    ]} />
+                      f.status === 'active' && {
+                        label: 'חסימת מפעל', icon: <Lock size={14} />, variant: 'danger',
+                        onClick: () => setConfirmAction({ type: 'suspend', factory: f }),
+                      },
+                      f.status === 'suspended' && {
+                        label: 'שחרור מפעל', icon: <Unlock size={14} />,
+                        onClick: () => setConfirmAction({ type: 'unsuspend', factory: f }),
+                      },
+                      { label: 'צפייה בדגלים',   icon: <Flag size={14} />,     onClick: () => navigate(`/admin/flags?factory_id=${f.id}`) },
+                      { label: 'דו"ח קרדיטים',   icon: <BarChart3 size={14} />, onClick: () => navigate(`/admin/reports?factory_id=${f.id}`) },
+                      { label: 'צפייה בפרטים',   icon: <Eye size={14} />,      onClick: () => navigate(`/admin/factories/${f.id}`) },
+                    ].filter(Boolean)} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {confirmAction && (
+        <div className="modal-overlay" onClick={() => !actionLoading && (setConfirmAction(null), setSuspendReason(''))}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{confirmAction.type === 'suspend' ? 'חסימת מפעל' : 'שחרור מפעל'}</h3>
+            <p className="modal__body">
+              {confirmAction.type === 'suspend'
+                ? `חסימת המפעל תעצור את כל הפעילות החדשה של משתמשי "${confirmAction.factory.name}" במערכת.`
+                : `שחרור המפעל יחזיר את משתמשי "${confirmAction.factory.name}" לפעילות במערכת.`}
+            </p>
+            {confirmAction.type === 'suspend' && (
+              <div className="form-field">
+                <label>סיבת חסימה <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder='לדוגמה: הפרת תנאי שימוש'
+                  value={suspendReason}
+                  onChange={(e) => setSuspendReason(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            )}
+            <div className="modal__actions">
+              <button
+                className="btn-ghost"
+                onClick={() => { setConfirmAction(null); setSuspendReason(''); }}
+                disabled={actionLoading}
+              >
+                ביטול
+              </button>
+              <button
+                className={confirmAction.type === 'suspend' ? 'btn-danger' : 'btn-primary'}
+                onClick={handleSuspendConfirm}
+                disabled={actionLoading || (confirmAction.type === 'suspend' && !suspendReason.trim())}
+              >
+                {actionLoading ? '...' : confirmAction.type === 'suspend' ? 'כן, חסום' : 'כן, שחרר'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

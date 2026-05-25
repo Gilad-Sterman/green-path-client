@@ -13,6 +13,12 @@ const ROLE_BADGE = {
   internal_admin: 'badge--admin',
 };
 
+const ROLE_LABEL = {
+  manager:        'מנהל/ת',
+  employee:       'עובד/ת',
+  internal_admin: 'מנהל מערכת',
+};
+
 const AdminUsersPage = () => {
   const dispatch = useDispatch();
   const { list: users, loading: usersLoading, lastFetched } = useSelector((s) => s.users);
@@ -55,15 +61,15 @@ const AdminUsersPage = () => {
     <div className="admin-page">
       <div className="admin-page__header">
         <div>
-          <h1>Users</h1>
-          <p className="page-subtitle">All managers and employees across the platform</p>
+          <h1>משתמשים</h1>
+          <p className="page-subtitle">כל המנהלים והעובדים במערכת</p>
         </div>
         <div className="refresh-group">
           {refreshedLabel && <span className="last-refreshed">{refreshedLabel}</span>}
           <button
             className="btn-ghost btn-ghost--icon"
             onClick={() => dispatch(fetchUsers({ force: true }))}
-            title="Refresh"
+            title="רענון"
             disabled={usersLoading}
           >
             <RefreshCw size={15} className={usersLoading ? 'spin' : ''} />
@@ -76,40 +82,40 @@ const AdminUsersPage = () => {
           <Search size={15} className="filter-bar__icon" />
           <input
             type="text"
-            placeholder="Search by name or phone…"
+            placeholder="חיפוש לפי שם או טלפון..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-          <option value="">All roles</option>
-          <option value="manager">Manager</option>
-          <option value="employee">Employee</option>
+          <option value="">כל התפקידים</option>
+          <option value="manager">מנהל/ת</option>
+          <option value="employee">עובד/ת</option>
         </select>
 
         <select value={factFilter} onChange={(e) => setFactFilter(e.target.value)}>
-          <option value="">All factories</option>
+          <option value="">כל המפעלים</option>
           {factories.map((f) => (
             <option key={f.id} value={f.id}>{f.name}</option>
           ))}
         </select>
 
         <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="">כל הסטטוסים</option>
+          <option value="active">פעיל</option>
+          <option value="inactive">לא פעיל</option>
         </select>
 
-        <span className="filter-bar__count">{filtered.length} user{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="filter-bar__count">{filtered.length} משתמשים</span>
       </div>
 
-      {loading && <div className="loading-row">Loading users…</div>}
+      {loading && <div className="loading-row">...טוען משתמשים</div>}
 
       {!loading && filtered.length === 0 && (
         <div className="empty-state">
           <Users size={38} />
-          <p>No users match your filters.</p>
+          <p>לא נמצאו משתמשים התואמים את הסינון.</p>
         </div>
       )}
 
@@ -118,12 +124,12 @@ const AdminUsersPage = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Role</th>
-                <th>Factory</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>שם</th>
+                <th>טלפון</th>
+                <th>תפקיד</th>
+                <th>מפעל</th>
+                <th>סטטוס</th>
+                <th>פעולות</th>
               </tr>
             </thead>
             <tbody>
@@ -132,7 +138,9 @@ const AdminUsersPage = () => {
                   <td className="td-primary">{u.full_name}</td>
                   <td className="td-muted">{u.phone_number}</td>
                   <td>
-                    <span className={`badge ${ROLE_BADGE[u.role] || 'badge--neutral'}`}>{u.role}</span>
+                    <span className={`badge ${ROLE_BADGE[u.role] || 'badge--neutral'}`}>
+                      {ROLE_LABEL[u.role] || u.role}
+                    </span>
                   </td>
                   <td>
                     {u.factory_id ? (
@@ -146,14 +154,14 @@ const AdminUsersPage = () => {
                   </td>
                   <td>
                     <span className={`badge ${u.is_active ? 'badge--green' : 'badge--neutral'}`}>
-                      {u.is_active ? 'Active' : 'Inactive'}
+                      {u.is_active ? 'פעיל' : 'לא פעיל'}
                     </span>
                   </td>
                   <td>
                     <RowActionsMenu items={[
                       u.is_active
-                        ? { label: 'Deactivate', icon: <UserX size={14} />, variant: 'danger',  onClick: () => toggleActive(u) }
-                        : { label: 'Reactivate', icon: <UserCheck size={14} />, variant: 'success', onClick: () => toggleActive(u) },
+                        ? { label: 'השהייה', icon: <UserX size={14} />, variant: 'danger',  onClick: () => toggleActive(u) }
+                        : { label: 'הפעלה מחדש', icon: <UserCheck size={14} />, variant: 'success', onClick: () => toggleActive(u) },
                     ]} />
                   </td>
                 </tr>

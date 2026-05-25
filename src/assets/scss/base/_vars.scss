@@ -1,4 +1,4 @@
-// ─── Brand greens ────────────────────────────────────────────────────────────
+// ─── Brand greens (kept for status/data badges only) ────────────────────────
 $green-900: #1b5e20;
 $green-800: #2e7d32;
 $green-700: #388e3c;
@@ -8,17 +8,37 @@ $green-300: #81c784;
 $green-100: #e8f5e9;
 $green-50:  #f1f8e9;
 
+// ─── Brand purples ────────────────────────────────────────────────────────────
+// ✏️  TO CHANGE THE APP'S PRIMARY COLOUR: edit the 5 values below, then update
+//     the semantic mappings ($color-primary etc.) in the next block.
+//     Everything else in the app references those semantic tokens, not raw hex.
+$purple-primary: #d6c7ff;   // soft lavender accent / borders
+$purple-dark:    #7a5cfa;   // primary actions / active text
+$purple-darker:  #6144e0;   // hover state for primary
+$purple-light:   #ede9fe;   // light tint (chips, info badges)
+$purple-50:      #f5f3ff;   // ultra-light tint (hover backgrounds)
+
+$blue-primary: #007AFF;   // soft lavender accent / borders
+$blue-dark:    #0056b3;   // primary actions / active text
+$blue-darker:  #004080;   // hover state for primary
+$blue-light:   #e6f0ff;   // light tint (chips, info badges)
+$blue-50:      #f0f5ff;   // ultra-light tint (hover backgrounds)
+
 // ─── Semantic colours ────────────────────────────────────────────────────────
-$color-bg:              #f7faf7;
-$color-bg-alt:          #f0f7f0;
+// These are what every component references. Swap brand variables above and
+// point these tokens at the new set to re-theme the full app in one block.
+$color-bg:              #f5f5f7;
+$color-bg-alt:          #eeebf8;
 $color-surface:         #ffffff;
-$color-primary:         $green-800;
-$color-primary-hover:   $green-700;
-$color-primary-light:   $green-100;
-$color-text:            #1a2e1a;
-$color-text-secondary:  #4a6a4a;
-$color-text-muted:      #8aaa8a;
-$color-border:          #d4e8d4;
+$color-gray:            #D9D9D9;
+$color-gray-light:      #ECE6F0;
+$color-primary:         #007AFF;
+$color-primary-hover:   $blue-darker;
+$color-primary-light:   $blue-light;
+$color-text:            #1a1a1a;
+$color-text-secondary:  #444444;
+$color-text-muted:      #666666;
+$color-border:          #e2dff5;
 $color-error:           #c62828;
 $color-error-bg:        #ffebee;
 $color-success:         $green-600;
@@ -51,12 +71,17 @@ $font-weight-semi:   600;
 $font-weight-semibold: 600;
 $font-weight-bold:   700;
 
+// ─── Layout ──────────────────────────────────────────────────────────────────
+$sidebar-width: 220px;
+
 // ─── Borders & radius ────────────────────────────────────────────────────────
 $radius-sm:   6px;
 $radius-md:   10px;
 $radius-lg:   16px;
 $radius-xl:   24px;
 $radius-full: 9999px;
+$border-radius-lg: $radius-lg;
+$border-radius-md: $radius-md;
 
 // ─── Shadows ─────────────────────────────────────────────────────────────────
 $shadow-sm: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);

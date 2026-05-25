@@ -18,17 +18,16 @@
 }
 
 @mixin card {
-  background: $color-surface;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-md;
-  border: 1px solid $color-border;
+  background: $color-gray-light;
+  border-radius: $radius-md;
+  // box-shadow: $shadow-md;
+  // border: 1px solid $color-border;
 }
 
 @mixin input-base {
   padding: $space-3 $space-4;
   font-size: $font-size-base;
   border: 1.5px solid $color-border;
-  border-radius: $radius-md;
   background: $color-surface;
   color: $color-text;
   outline: none;
@@ -57,6 +56,15 @@
   &:hover:not(:disabled) { background: $color-primary-hover; }
   &:active:not(:disabled) { transform: scale(0.99); }
   &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+@mixin rtl-layout {
+  direction: rtl;
+  text-align: right;
+}
+
+@mixin card-shadow {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 @mixin truncate {
