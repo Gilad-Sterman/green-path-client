@@ -191,7 +191,7 @@ const TeamPage = () => {
               onClick={() => setStatusFilter(key)}
             >
               {label}
-              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>({count})</span>
+              <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>({count})</span>
             </button>
           ))}
         </div>

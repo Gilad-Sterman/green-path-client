@@ -67,7 +67,7 @@ const batchesSlice = createSlice({
   extraReducers: (builder) => {
     const updateInList = (state, action) => {
       const idx = state.list.findIndex((b) => b.id === action.payload.id);
-      if (idx !== -1) state.list[idx] = action.payload;
+      if (idx !== -1) state.list[idx] = { ...state.list[idx], ...action.payload };
     };
 
     builder

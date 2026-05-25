@@ -1,35 +1,55 @@
-import { useEffect } from 'react';
-import { Package, Layers, Truck, Award, Flag, Users } from 'lucide-react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Package, Layers, Truck, Award, Flag, Users, Box,
+  Building2, BarChart3, Users2, AlertTriangle,
+} from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
 import { fetchIntakes }        from '../../store/slices/intakesSlice';
 import { fetchBatches }        from '../../store/slices/batchesSlice';
 import { fetchCreditsSummary } from '../../store/slices/creditsSlice';
 import { fetchFlagsSummary }   from '../../store/slices/flagsSlice';
 
-const QUICK_LINKS = [
-  { to: '/intakes',   icon: Package, label: 'Intakes',   desc: 'Record raw material intake' },
-  { to: '/batches',   icon: Layers,  label: 'Batches',   desc: 'Manage production batches' },
-  { to: '/shipments', icon: Truck,   label: 'Shipments', desc: 'Create shipments & credits' },
-  { to: '/credits',   icon: Award,   label: 'Credits',   desc: 'View credits ledger' },
-  { to: '/suppliers', icon: Users,   label: 'Suppliers', desc: 'Manage suppliers' },
-  { to: '/flags',     icon: Flag,    label: 'Flags',     desc: 'Review anomalies' },
+const PERIODS = [
+  { key: 'day',   label: 'יום' },
+  { key: 'week',  label: 'שבוע' },
+  { key: 'month', label: 'חודש' },
 ];
 
+const MGMT_TILES = [
+  { to: '/products',  icon: Box,       label: 'ניהול תוצ"ג' },
+  { to: '/intakes',   icon: Package,   label: 'קליטות' },
+  { to: '/batches',   icon: Layers,    label: 'אצוות' },
+  { to: '/shipments', icon: Truck,     label: 'משלוחים' },
+  { to: '/suppliers', icon: Building2, label: 'ספקים' },
+  { to: '/customers', icon: Users,     label: 'לקוחות' },
+  { to: '/credits',   icon: Award,     label: 'קרדיטים' },
+  { to: '/reports',   icon: BarChart3, label: 'דו"ח' },
+  { to: '/team',      icon: Users2,    label: 'צוות' },
+  { to: '/flags',     icon: Flag,      label: 'דגלים' },
+];
+
+const getPeriodStart = (p) => {
+  if (p === 'day')  return new Date(new Date().setHours(0, 0, 0, 0));
+  if (p === 'week') return new Date(Date.now() - 7 * 86400000);
+  return new Date(Date.now() - 30 * 86400000);
+};
+
 const fmtKg = (n) =>
-  n != null
-    ? `${parseFloat(n).toLocaleString(undefined, { maximumFractionDigits: 0 })} kg`
-    : '—';
+  n > 0
+    ? `${n.toLocaleString('he-IL', { maximumFractionDigits: 0 })} ק"ג`
+    : '0 ק"ג';
 
 const ManagerDashboard = () => {
-  const dispatch  = useDispatch();
-  const { user }  = useSelector((s) => s.auth);
-  const firstName = user?.full_name?.split(' ')[0] || 'there';
+  const dispatch = useDispatch();
+  const { user } = useSelector((s) => s.auth);
 
-  const { list: intakes,  loading: intakesLoading }  = useSelector((s) => s.intakes);
-  const { list: batches,  loading: batchesLoading }  = useSelector((s) => s.batches);
-  const { summary: creditsSummary, summaryLoading }  = useSelector((s) => s.credits);
-  const { summary: flagsSummary }                    = useSelector((s) => s.flags);
+  const { list: intakes, loading: intakesLoading }         = useSelector((s) => s.intakes);
+  const { list: batches, loading: batchesLoading }         = useSelector((s) => s.batches);
+  const { summary: creditsSummary, summaryLoading }        = useSelector((s) => s.credits);
+  const { summary: flagsSummary }                          = useSelector((s) => s.flags);
+
+  const [period, setPeriod] = useState('day');
 
   useEffect(() => {
     dispatch(fetchIntakes());
@@ -38,72 +58,109 @@ const ManagerDashboard = () => {
     dispatch(fetchFlagsSummary());
   }, [dispatch]);
 
-  const activeBatches = batches.filter((b) => b.status === 'in_progress').length;
-  const openFlags     = flagsSummary?.open ?? null;
+  const openFlags = flagsSummary?.open ?? null;
+
+  const periodStart          = getPeriodStart(period);
+  const batchesInPeriod      = batches.filter((b) => new Date(b.created_at) >= periodStart).length;
+  const intakeWeightInPeriod = intakes
+    .filter((i) => new Date(i.created_at) >= periodStart)
+    .reduce((s, i) => s + parseFloat(i.eligible_weight_kg || 0), 0);
+
+  const isLoading = intakesLoading || batchesLoading;
 
   return (
-    <div className="dashboard">
-      <div className="dashboard__header">
+    <div className="mgr-dashboard">
+
+      <div className="mgr-dashboard__header">
         <div>
-          <h1>Welcome back, {firstName}</h1>
-          <p className="dashboard__subtitle">
-            {user?.factory_name || 'Factory'} · Manager Portal
+          <h1>לוח בקרה</h1>
+          <p className="mgr-dashboard__subtitle">
+            {user?.factory_name || 'המפעל'} · {user?.full_name}
           </p>
+        </div>
+        {openFlags > 0 && (
+          <Link to="/flags" className="mgr-flags-alert">
+            <AlertTriangle size={14} />
+            {openFlags} דגלים פתוחים
+          </Link>
+        )}
+      </div>
+
+      <p className="mgr-section-title">פעולות ייצור</p>
+      <div className="production-actions">
+        <Link to="/intakes/new" className="prod-action prod-action--primary">
+          <div className="prod-action__icon"><Package size={22} /></div>
+          <div>
+            <p className="prod-action__title">קליטת חומר גלם</p>
+            <p className="prod-action__desc">תיעוד כניסת חומר חדשה למחסן</p>
+          </div>
+        </Link>
+        <Link to="/batches?new=1" className="prod-action">
+          <div className="prod-action__icon"><Layers size={22} /></div>
+          <div>
+            <p className="prod-action__title">יצירת אצווה</p>
+            <p className="prod-action__desc">אצוות מוצר על בסיס חומר גלם</p>
+          </div>
+        </Link>
+        <Link to="/shipments?new=1" className="prod-action">
+          <div className="prod-action__icon"><Truck size={22} /></div>
+          <div>
+            <p className="prod-action__title">יצירת משלוח</p>
+            <p className="prod-action__desc">משלוח ללקוח + יצירת קרדיטים</p>
+          </div>
+        </Link>
+      </div>
+
+      <div className="mgr-summary__header">
+        <p className="mgr-section-title">סיכום</p>
+        <div className="period-tabs">
+          {PERIODS.map(({ key, label }) => (
+            <button
+              key={key}
+              className={`period-tab${period === key ? ' period-tab--active' : ''}`}
+              onClick={() => setPeriod(key)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="dashboard__kpis">
         <div className="kpi-card">
-          <span className="kpi-card__label">Total Intakes</span>
-          <span className="kpi-card__value">
-            {intakesLoading ? '…' : intakes.length}
-          </span>
-          <span className="kpi-card__hint">Raw material records</span>
+          <span className="kpi-card__label">אצוות שנוצרו</span>
+          <span className="kpi-card__value">{isLoading ? '…' : batchesInPeriod}</span>
+          <span className="kpi-card__hint">בטווח שנבחר</span>
         </div>
-
         <div className="kpi-card">
-          <span className="kpi-card__label">Active Batches</span>
-          <span className="kpi-card__value">
-            {batchesLoading ? '…' : activeBatches}
-          </span>
-          <span className="kpi-card__hint">In progress</span>
+          <span className="kpi-card__label">חומר גלם שנקלט</span>
+          <span className="kpi-card__value">{isLoading ? '…' : fmtKg(intakeWeightInPeriod)}</span>
+          <span className="kpi-card__hint">ק"ג זכאי</span>
         </div>
-
         <div className="kpi-card">
-          <span className="kpi-card__label">Credits Issued</span>
+          <span className="kpi-card__label">קרדיטים שהונפקו</span>
           <span className="kpi-card__value">
-            {summaryLoading ? '…' : fmtKg(creditsSummary?.total_credits_kg)}
+            {summaryLoading ? '…' : fmtKg(parseFloat(creditsSummary?.total_credits_kg || 0))}
           </span>
-          <span className="kpi-card__hint">
-            {creditsSummary
-              ? `${fmtKg(creditsSummary.remaining_balance_kg)} remaining`
-              : 'Eligible output'}
-          </span>
+          <span className="kpi-card__hint">סה"כ מצטבר</span>
         </div>
-
         <Link to="/flags" className={`kpi-card kpi-card--link${openFlags > 0 ? ' kpi-card--warn' : ''}`}>
-          <span className="kpi-card__label">Open Flags</span>
-          <span className="kpi-card__value">
-            {openFlags === null ? '…' : openFlags}
-          </span>
-          <span className="kpi-card__hint">
-            {openFlags > 0 ? 'Requires attention' : 'All clear'}
-          </span>
+          <span className="kpi-card__label">דגלים פתוחים</span>
+          <span className="kpi-card__value">{openFlags === null ? '…' : openFlags}</span>
+          <span className="kpi-card__hint">{openFlags > 0 ? 'דורש טיפול' : 'הכל תקין'}</span>
         </Link>
       </div>
 
-      <h2 className="dashboard__section-title">Quick Access</h2>
-      <div className="dashboard__links">
-        {QUICK_LINKS.map(({ to, icon: Icon, label, desc }) => (
-          <Link key={to} to={to} className="quick-link">
-            <div className="quick-link__icon"><Icon size={20} /></div>
-            <div>
-              <p className="quick-link__label">{label}</p>
-              <p className="quick-link__desc">{desc}</p>
-            </div>
+      <p className="mgr-section-title">ניהול</p>
+      <div className="mgmt-grid">
+        {MGMT_TILES.map(({ to, icon: Icon, label }) => (
+          <Link key={to} to={to} className="mgmt-tile">
+            <div className="mgmt-tile__icon"><Icon size={18} /></div>
+            <span className="mgmt-tile__label">{label}</span>
           </Link>
         ))}
       </div>
+
     </div>
   );
 };

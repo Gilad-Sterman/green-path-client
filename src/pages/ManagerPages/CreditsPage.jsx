@@ -130,7 +130,7 @@ const CreditsPage = () => {
             onClick={() => setFilter(f)}
           >
             {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-            <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>
+            <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
               ({f === 'all' ? credits.length : credits.filter((c) => c.kind === f).length})
             </span>
           </button>

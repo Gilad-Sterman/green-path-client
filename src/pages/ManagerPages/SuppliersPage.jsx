@@ -205,7 +205,7 @@ const SuppliersPage = () => {
         {FILTERS.map((f) => (
           <button key={f} className={`filter-tab${filter === f ? ' filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
             {f.charAt(0).toUpperCase() + f.slice(1)}
-            <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>
+            <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
               ({f === 'all' ? suppliers.length : f === 'active' ? suppliers.filter((s) => s.is_active).length : suppliers.filter((s) => !s.is_active).length})
             </span>
           </button>

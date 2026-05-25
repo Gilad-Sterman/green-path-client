@@ -6,18 +6,18 @@ import BottomNav from './BottomNav';
 
 const AppShell = () => {
   const { user } = useSelector((state) => state.auth);
-  const isEmployee = user?.role === 'employee';
+  const isMobile = user?.role === 'employee' || user?.role === 'manager';
 
   return (
-    <div className={`app-shell${isEmployee ? ' app-shell--mobile' : ' app-shell--desktop'}`}>
-      {!isEmployee && <Sidebar role={user?.role} />}
+    <div className={`app-shell${isMobile ? ' app-shell--mobile' : ' app-shell--desktop'}`}>
+      {!isMobile && <Sidebar role={user?.role} />}
 
       <div className="app-shell__body">
-        <Header showBrand={isEmployee} />
+        <Header showBrand={isMobile} />
         <main className="app-shell__main">
           <Outlet />
         </main>
-        {isEmployee && <BottomNav />}
+        {isMobile && <BottomNav role={user?.role} />}
       </div>
     </div>
   );

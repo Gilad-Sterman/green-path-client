@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Truck, Plus, X, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Trash2,
@@ -49,6 +50,7 @@ const ShipmentsPage = () => {
   const { list: batches }   = useSelector((s) => s.batches);
   const refreshedLabel = useRelativeTime(lastFetched);
 
+  const [searchParams] = useSearchParams();
   const [showForm, setShowForm]         = useState(false);
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [items, setItems]               = useState([{ ...EMPTY_ITEM }]);
@@ -65,6 +67,10 @@ const ShipmentsPage = () => {
     dispatch(fetchCustomers());
     dispatch(fetchBatches({ force: false }));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1') setShowForm(true);
+  }, [searchParams]);
 
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -323,7 +329,7 @@ const ShipmentsPage = () => {
             onClick={() => setFilter(f)}
           >
             {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-            <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>
+            <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
               ({f === 'all' ? shipments.length : shipments.filter((s) => s.status === f).length})
             </span>
           </button>

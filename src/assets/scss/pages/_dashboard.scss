@@ -142,21 +142,22 @@
 }
 
 .date-filter-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: $space-1;
-  padding: $space-2;
+  padding: $space-1 $space-3;
   border: 1px solid $color-border;
-  border-radius: $radius-sm;
+  border-radius: $radius-full;
   background: $color-surface;
   color: $color-text-muted;
   font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
   cursor: pointer;
   font-family: inherit;
   transition: border-color $transition-fast, color $transition-fast, background $transition-fast;
 
-  &:hover       { border-color: $color-gray; color: $color-primary; }
-  &--active     { background: $color-gray-light; border-color: $color-gray-light; color: $color-text; }
+  &:hover   { border-color: $color-primary; color: $color-text; }
+  &--active { background: $color-primary; border-color: $color-primary; color: #fff; }
 }
 
 // ── Entity type tabs ──────────────────────────────────────────────────────────
@@ -185,6 +186,212 @@
   transition: color $transition-fast, border-color $transition-fast;
 
   &--active  { color: $color-text; background-color: $color-gray-light; border-color: $color-gray-light; }
+}
+
+// ── Manager mobile dashboard ──────────────────────────────────────────────────
+.mgr-dashboard {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.mgr-dashboard__header {
+  @include flex-between;
+  align-items: flex-start;
+  margin-bottom: $space-5;
+
+  h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: $color-text; }
+}
+
+.mgr-dashboard__subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  margin-top: $space-1;
+}
+
+.mgr-section-title {
+  font-size: 10px;
+  font-weight: $font-weight-bold;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: $space-5 0 $space-3;
+}
+
+.mgr-flags-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  background: #fff3e0;
+  color: $color-warning;
+  border: 1px solid rgba($color-warning, 0.3);
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semi;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background $transition-fast;
+
+  &:hover { background: #ffe0b2; }
+}
+
+// ── Production action cards ────────────────────────────────────────────────────
+.production-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.prod-action {
+  @include card;
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-4 $space-5;
+  text-decoration: none;
+  color: $color-text;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:hover, &:active {
+    transform: translateY(-1px);
+    box-shadow: $shadow-md;
+  }
+
+  &--primary {
+    background: $color-primary;
+    color: #fff;
+
+    .prod-action__icon {
+      background: rgba(#fff, 0.18);
+      color: #fff;
+    }
+
+    .prod-action__desc { color: rgba(#fff, 0.72); }
+  }
+}
+
+.prod-action__icon {
+  @include flex-center;
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-md;
+  background: $color-primary-light;
+  color: $color-primary;
+  flex-shrink: 0;
+}
+
+.prod-action__title {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semi;
+  line-height: 1.3;
+}
+
+.prod-action__desc {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  margin-top: 2px;
+}
+
+// ── Period summary header ──────────────────────────────────────────────────────
+.mgr-summary__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .mgr-section-title { margin-bottom: 0; }
+}
+
+.period-tabs {
+  display: flex;
+  background: $color-bg;
+  border-radius: $radius-full;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid $color-border;
+}
+
+.period-tab {
+  padding: $space-1 $space-3;
+  border-radius: $radius-full;
+  border: none;
+  background: none;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background $transition-fast, color $transition-fast;
+
+  &--active {
+    background: $color-surface;
+    color: $color-text;
+    box-shadow: $shadow-sm;
+  }
+}
+
+// ── Management grid ────────────────────────────────────────────────────────────
+.mgmt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: $space-3;
+  margin-bottom: $space-4;
+}
+
+.mgmt-tile {
+  @include card;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  text-decoration: none;
+  color: $color-text;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+
+  &:hover { transform: translateY(-1px); box-shadow: $shadow-sm; }
+}
+
+.mgmt-tile__icon {
+  @include flex-center;
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-sm;
+  background: $purple-50;
+  color: $color-primary;
+  flex-shrink: 0;
+}
+
+.mgmt-tile__label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+}
+
+// ── Bottom nav badge (flags count) ────────────────────────────────────────────
+.bottom-nav__icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav__badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: $radius-full;
+  background: $color-error;
+  color: #fff;
+  font-size: 10px;
+  font-weight: $font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 // ── Employee mobile dashboard ─────────────────────────────────────────────────

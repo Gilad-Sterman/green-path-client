@@ -1,230 +1,49 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Package, Plus, X, AlertCircle, RefreshCw, Pencil, Info, ChevronRight, ScanLine, Loader2, CheckCircle2 } from 'lucide-react';
-import { analyzeDocument } from '../../api/documents';
+import { useNavigate } from 'react-router-dom';
+import { Package, Plus, AlertCircle, RefreshCw, Pencil } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
-import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
-import { fetchIntakes, createIntakeThunk, updateIntakeThunk, clearIntakesError } from '../../store/slices/intakesSlice';
-import { fetchSuppliers } from '../../store/slices/suppliersSlice';
+import { fetchIntakes } from '../../store/slices/intakesSlice';
 
 const MATERIAL_TYPES   = ['plastic', 'paper', 'metal', 'glass', 'textile', 'rubber', 'mixed', 'other'];
-const MATERIAL_SOURCES = ['post_consumer', 'post_industrial', 'commercial', 'municipal', 'other'];
-const MATERIAL_STATUSES = ['recycled', 'virgin', 'mixed'];
-const LOCATION_STATUSES = ['in_factory', 'out_of_factory', 'unknown'];
-const DATA_ENTRY_PROFILES = ['manual_capture', 'trusted_capture', 'mixed_capture'];
 
 const STATUS_BADGE = { recycled: 'badge--green', virgin: 'badge--neutral', mixed: 'badge--warn' };
 
-const CONFIDENCE_LABELS = {
-  auto: { label: 'Auto-filled', cls: 'ocr-badge--auto' },
-  warn: { label: 'Review',      cls: 'ocr-badge--warn' },
+const MATERIAL_TYPE_HE = {
+  plastic: 'פלסטיק', paper: 'נייר / קרטון', metal: 'מתכת',
+  glass: 'זכוכית', textile: 'טקסטיל', rubber: 'גומי', mixed: 'מעורב', other: 'אחר',
 };
-
-const MATERIAL_ALIASES = {
-  plastic:  ['פלסטיק', 'פי.וי.סי', 'pvc', 'pe', 'pp', 'plastic'],
-  paper:    ['נייר', 'קרטון', 'paper', 'cardboard', 'carton'],
-  metal:    ['מתכת', 'ברזל', 'אלומיניום', 'נחושת', 'metal', 'iron', 'aluminium', 'aluminum', 'copper', 'steel'],
-  glass:    ['זכוכית', 'glass'],
-  textile:  ['טקסטיל', 'בד', 'בגדים', 'textile', 'fabric', 'clothing'],
-  rubber:   ['גומי', 'צמיג', 'rubber', 'tyre', 'tire'],
-  mixed:    ['מעורב', 'mixed'],
+const MATERIAL_SOURCE_HE = {
+  post_consumer: 'פוסט-צרכני', post_industrial: 'פוסט-תעשייתי',
+  commercial: 'מסחרי', municipal: 'עירוני', other: 'אחר',
 };
+const MATERIAL_STATUS_HE = { recycled: 'ממוחזר', virgin: 'גולמי', mixed: 'מעורב' };
+const FILTER_LABELS = { all: 'הכל', recycled: 'ממוחזר', virgin: 'גולמי', mixed: 'מעורב' };
 
-const matchMaterialType = (hint = '') => {
-  const lower = hint.toLowerCase();
-  for (const [type, aliases] of Object.entries(MATERIAL_ALIASES)) {
-    if (aliases.some((a) => lower.includes(a.toLowerCase()))) return type;
-  }
-  return null;
-};
 
-const parseDateValue = (raw = '') => {
-  const parts = raw.split(/[\/\-\.]/);
-  if (parts.length === 3 && parts[2].length === 4) {
-    return new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`);
-  }
-  return new Date(raw);
-};
-
-const normalizeStr = (s = '') =>
-  s.toLowerCase().replace(/[\s\-\.,'"״׳]+/g, '').replace(/\u05D1\u05E2\u05D3\u0022\u05DE$/u, '');
-
-const today = () => new Date().toISOString().split('T')[0];
-
-const EMPTY_FORM = {
-  supplier_id: '', intake_date: today(), delivery_note_number: '',
-  material_type: '', material_source: '', material_status: '',
-  location_status: '', net_weight_kg: '', eligible_input_percent: '100',
-  data_entry_profile: 'manual_capture', notes: '',
-};
-
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-const fmtKg   = (n) => n != null ? `${parseFloat(n).toLocaleString()} kg` : '—';
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+const fmtKg   = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
 
 const FILTERS = ['all', 'recycled', 'virgin', 'mixed'];
 
 const IntakesPage = () => {
   const dispatch = useDispatch();
+  const navigate  = useNavigate();
   const { list: intakes, loading, error, lastFetched } = useSelector((s) => s.intakes);
-  const { list: suppliers } = useSelector((s) => s.suppliers);
   const { user } = useSelector((s) => s.auth);
   const isManager = user?.role === 'manager' || user?.role === 'internal_admin';
   const refreshedLabel = useRelativeTime(lastFetched);
 
-  const [showForm, setShowForm]     = useState(false);
-  const [editingId, setEditingId]   = useState(null);
-  const [form, setForm]             = useState(EMPTY_FORM);
-  const [saving, setSaving]         = useState(false);
-  const [toast, setToast]           = useState('');
-  const [formError, setFormError]   = useState('');
   const [filter, setFilter]         = useState('all');
   const [typeFilter, setTypeFilter] = useState('');
-  const [ocrLoading,      setOcrLoading]      = useState(false);
-  const [ocrError,        setOcrError]        = useState('');
-  const [ocrFields,       setOcrFields]       = useState(null);
-  const [ocrSupplierHint, setOcrSupplierHint] = useState('');
-  const [ocrExtras,       setOcrExtras]       = useState(null);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchIntakes({ force: false }));
-    dispatch(fetchSuppliers());
   }, [dispatch]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
-    setFormError('');
-    if (name === 'supplier_id') setOcrSupplierHint('');
-    if (ocrFields?.[name]) setOcrFields((prev) => { const next = { ...prev }; delete next[name]; return next; });
-  };
 
-  const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!fileInputRef.current) return;
-    fileInputRef.current.value = '';
-    if (!file) return;
-    setOcrLoading(true); setOcrError(''); setOcrFields(null); setOcrSupplierHint(''); setOcrExtras(null);
-    try {
-      const { data } = await analyzeDocument(file);
-      const fields = data?.data?.fields || {};
-      const filled = {};
-      if (fields.delivery_note_number?.fill && fields.delivery_note_number.fill !== 'skip') {
-        filled.delivery_note_number = fields.delivery_note_number;
-        setForm((p) => ({ ...p, delivery_note_number: fields.delivery_note_number.value }));
-      }
-      if (fields.net_weight_kg?.fill && fields.net_weight_kg.fill !== 'skip') {
-        const numVal = parseFloat(fields.net_weight_kg.value.replace(/[^0-9.]/g, ''));
-        if (!isNaN(numVal)) { filled.net_weight_kg = fields.net_weight_kg; setForm((p) => ({ ...p, net_weight_kg: String(numVal) })); }
-      }
-      if (fields.intake_date?.fill && fields.intake_date.fill !== 'skip') {
-        const parsed = parseDateValue(fields.intake_date.value);
-        if (!isNaN(parsed.getTime())) {
-          const iso = parsed.toISOString().split('T')[0];
-          filled.intake_date = { ...fields.intake_date, value: iso };
-          setForm((p) => ({ ...p, intake_date: iso }));
-        }
-      }
-      if (fields.supplier_name?.fill && fields.supplier_name.fill !== 'skip') {
-        const extracted = normalizeStr(fields.supplier_name.value);
-        const match = suppliers.filter((s) => s.is_active).find((s) => {
-          const norm = normalizeStr(s.name);
-          return norm === extracted || norm.includes(extracted) || extracted.includes(norm);
-        });
-        if (match) {
-          filled.supplier_id = { value: match.name, confidence: fields.supplier_name.confidence, fill: fields.supplier_name.fill };
-          setForm((p) => ({ ...p, supplier_id: match.id }));
-        } else { setOcrSupplierHint(fields.supplier_name.value); }
-      }
-      const extras = data?.data?.extras || {};
-      if (Object.keys(extras).length > 0) setOcrExtras(extras);
-      if (extras.material_hint) {
-        const matched = matchMaterialType(extras.material_hint);
-        if (matched) { filled.material_type = { value: matched, confidence: 0.80, fill: 'auto' }; setForm((p) => ({ ...p, material_type: matched })); }
-      }
-      setOcrFields(Object.keys(filled).length > 0 ? filled : null);
-      if (Object.keys(filled).length === 0) setOcrError('Document analyzed but no fields could be extracted.');
-    } catch (err) {
-      setOcrError(err?.response?.data?.message || 'OCR failed. Please fill the form manually.');
-    } finally { setOcrLoading(false); }
-  };
 
-  const handleEdit = (intake) => {
-    setEditingId(intake.id);
-    setForm({
-      supplier_id:           intake.supplier_id,
-      intake_date:           intake.intake_date?.split('T')[0] || today(),
-      delivery_note_number:  intake.delivery_note_number,
-      material_type:         intake.material_type,
-      material_source:       intake.material_source,
-      material_status:       intake.material_status,
-      location_status:       intake.location_status  || '',
-      net_weight_kg:         String(intake.net_weight_kg),
-      eligible_input_percent: String(intake.eligible_input_percent ?? 100),
-      data_entry_profile:    intake.data_entry_profile || 'manual_capture',
-      notes:                 intake.notes || '',
-    });
-    setShowForm(true);
-  };
-
-  const eligiblePreview = () => {
-    const w = parseFloat(form.net_weight_kg);
-    const p = parseFloat(form.eligible_input_percent);
-    if (!isNaN(w) && !isNaN(p) && w > 0) return ((w * p) / 100).toFixed(2);
-    return null;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.supplier_id)              { setFormError('Supplier is required.'); return; }
-    if (!form.material_type)            { setFormError('Material type is required.'); return; }
-    if (!form.material_source)          { setFormError('Material source is required.'); return; }
-    if (!form.material_status)          { setFormError('Material status is required.'); return; }
-    if (!form.net_weight_kg)            { setFormError('Net weight is required.'); return; }
-    if (!form.intake_date)              { setFormError('Intake date is required.'); return; }
-    if (!form.delivery_note_number.trim()) { setFormError('Delivery note number is required.'); return; }
-
-    const payload = {
-      supplier_id:            form.supplier_id,
-      intake_date:            form.intake_date,
-      delivery_note_number:   form.delivery_note_number.trim(),
-      material_type:          form.material_type,
-      material_source:        form.material_source,
-      material_status:        form.material_status,
-      net_weight_kg:          parseFloat(form.net_weight_kg),
-      eligible_input_percent: parseFloat(form.eligible_input_percent),
-      data_entry_profile:     form.data_entry_profile || undefined,
-      location_status:        form.location_status    || undefined,
-      notes:                  form.notes              || undefined,
-    };
-
-    setSaving(true);
-    const result = await dispatch(
-      editingId ? updateIntakeThunk({ id: editingId, body: payload }) : createIntakeThunk(payload)
-    );
-    setSaving(false);
-
-    const succeeded = editingId
-      ? updateIntakeThunk.fulfilled.match(result)
-      : createIntakeThunk.fulfilled.match(result);
-
-    if (succeeded) {
-      setToast(editingId ? 'Intake updated.' : 'Intake recorded successfully.');
-      handleClose();
-    } else {
-      setFormError(result.payload || (editingId ? 'Failed to update.' : 'Failed to record intake.'));
-    }
-  };
-
-  const handleClose = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setFormError('');
-    setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setOcrError('');
-    dispatch(clearIntakesError());
-  };
 
   const visible = intakes.filter((i) => {
     if (filter !== 'all' && i.material_status !== filter) return false;
@@ -232,223 +51,36 @@ const IntakesPage = () => {
     return true;
   });
 
-  const activeSuppliers = suppliers.filter((s) => s.is_active);
-
   return (
     <div className="manager-page">
       <div className="manager-page__header">
         <div>
-          <h1>Raw Material Intakes</h1>
-          <p className="page-subtitle">Record incoming raw material deliveries</p>
+          <h1>קליטות חומר גלם</h1>
+          <p className="page-subtitle">תיעוד כניסות חומר גלם למחסן</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div className="refresh-group">
             {refreshedLabel && <span className="last-refreshed">{refreshedLabel}</span>}
-            <button className="btn-ghost btn-ghost--icon" onClick={() => dispatch(fetchIntakes({ force: true }))} disabled={loading} title="Refresh">
+            <button className="btn-ghost btn-ghost--icon" onClick={() => dispatch(fetchIntakes({ force: true }))} disabled={loading} title="רענן">
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
             </button>
           </div>
           {isManager && (
-            <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
-              <Plus size={16} /> New Intake
+            <button className="btn-primary btn-primary--sm" onClick={() => navigate('/intakes/new')}>
+              <Plus size={16} /> קליטה חדשה
             </button>
           )}
         </div>
       </div>
 
-      <Toast message={toast} onClose={() => setToast('')} />
       {error && <div className="alert alert--error"><AlertCircle size={16} />{error}</div>}
-
-      {showForm && (
-        <div className="form-card">
-          <div className="form-card__header">
-            <h3>{editingId ? 'Edit Intake' : 'Record New Intake'}</h3>
-            <button className="icon-btn" onClick={handleClose}><X size={18} /></button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="manager-form">
-            {formError && <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>}
-
-            {!editingId && (
-              <div className="ocr-upload-banner">
-                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: 'none' }} onChange={handleFileSelect} />
-                {ocrLoading ? (
-                  <div className="ocr-upload-banner__scanning"><Loader2 size={18} className="ocr-spin" /><span>Analyzing document…</span></div>
-                ) : ocrFields ? (
-                  <div className="ocr-upload-banner__done">
-                    <CheckCircle2 size={16} /><span>Fields pre-filled from document</span>
-                    <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setForm(EMPTY_FORM); }}>
-                      <X size={14} /> Clear
-                    </button>
-                  </div>
-                ) : (
-                  <button type="button" className="ocr-upload-btn" onClick={() => fileInputRef.current?.click()}>
-                    <ScanLine size={18} /><span>Scan Delivery Note</span>
-                  </button>
-                )}
-                {ocrError && <p className="ocr-upload-banner__error">{ocrError}</p>}
-                {ocrExtras && (
-                  <div className="ocr-extras">
-                    {ocrExtras.client_name   && <span className="ocr-extras__chip"><strong>לקוח:</strong> {ocrExtras.client_name}</span>}
-                    {ocrExtras.carrier_name  && <span className="ocr-extras__chip"><strong>מוביל:</strong> {ocrExtras.carrier_name}</span>}
-                    {ocrExtras.material_hint && <span className="ocr-extras__chip"><strong>חומר:</strong> {ocrExtras.material_hint}</span>}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeSuppliers.length === 0 && (
-              <div className="alert alert--warn">
-                <Info size={15} />
-                No active suppliers found. Please add a supplier before recording an intake.
-              </div>
-            )}
-
-            <div className="form-row">
-              <div className="form-field">
-                <label>Supplier <span className="required">*</span>
-                  {ocrFields?.supplier_id && (
-                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.supplier_id.fill]?.cls}`}>
-                      {CONFIDENCE_LABELS[ocrFields.supplier_id.fill]?.label}
-                    </span>
-                  )}
-                </label>
-                <select name="supplier_id" value={form.supplier_id} onChange={handleChange}>
-                  <option value="">— Select supplier —</option>
-                  {activeSuppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-                {ocrSupplierHint && <p className="ocr-supplier-hint">💡 Document mentions: <strong>{ocrSupplierHint}</strong></p>}
-              </div>
-              <div className="form-field">
-                <label>Intake date <span className="required">*</span>
-                  {ocrFields?.intake_date && (
-                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.intake_date.fill]?.cls}`}>
-                      {CONFIDENCE_LABELS[ocrFields.intake_date.fill]?.label}
-                    </span>
-                  )}
-                </label>
-                <input name="intake_date" type="date" value={form.intake_date} max={today()} onChange={handleChange} />
-              </div>
-            </div>
-
-            <div className="form-field">
-              <label>Delivery note number <span className="required">*</span>
-                {ocrFields?.delivery_note_number && (
-                  <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.delivery_note_number.fill]?.cls}`}>
-                    {CONFIDENCE_LABELS[ocrFields.delivery_note_number.fill]?.label}
-                  </span>
-                )}
-              </label>
-              <input
-                name="delivery_note_number" value={form.delivery_note_number} onChange={handleChange}
-                placeholder="e.g. DN-2024-001"
-                style={{ maxWidth: '320px' }}
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-field">
-                <label>Material type <span className="required">*</span>
-                  {ocrFields?.material_type && (
-                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.material_type.fill]?.cls}`}>
-                      {CONFIDENCE_LABELS[ocrFields.material_type.fill]?.label}
-                    </span>
-                  )}
-                </label>
-                <select name="material_type" value={form.material_type} onChange={handleChange}>
-                  <option value="">— Select type —</option>
-                  {MATERIAL_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>Material source <span className="required">*</span></label>
-                <select name="material_source" value={form.material_source} onChange={handleChange}>
-                  <option value="">— Select source —</option>
-                  {MATERIAL_SOURCES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-field">
-                <label>Material status <span className="required">*</span></label>
-                <select name="material_status" value={form.material_status} onChange={handleChange}>
-                  <option value="">— Select status —</option>
-                  {MATERIAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>Location status</label>
-                <select name="location_status" value={form.location_status} onChange={handleChange}>
-                  <option value="">— Optional —</option>
-                  {LOCATION_STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-field">
-                <label>Net weight (kg) <span className="required">*</span>
-                  {ocrFields?.net_weight_kg && (
-                    <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.net_weight_kg.fill]?.cls}`}>
-                      {CONFIDENCE_LABELS[ocrFields.net_weight_kg.fill]?.label}
-                    </span>
-                  )}
-                </label>
-                <input
-                  name="net_weight_kg" type="number" step="0.01" min="0.01"
-                  value={form.net_weight_kg} onChange={handleChange}
-                  placeholder="e.g. 500.00"
-                />
-              </div>
-              <div className="form-field">
-                <label>Eligible input % <span className="form-hint">(0–100)</span></label>
-                <input
-                  name="eligible_input_percent" type="number" step="0.01" min="0" max="100"
-                  value={form.eligible_input_percent} onChange={handleChange}
-                />
-                {eligiblePreview() && (
-                  <span className="field-hint">
-                    → Eligible weight: <strong>{eligiblePreview()} kg</strong>
-                    {parseFloat(form.eligible_input_percent) < 100 && (
-                      <span className="field-hint-warn"> · Partial eligibility</span>
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-field">
-                <label>Data entry profile</label>
-                <select name="data_entry_profile" value={form.data_entry_profile} onChange={handleChange}>
-                  {DATA_ENTRY_PROFILES.map((p) => <option key={p} value={p}>{p.replace(/_/g, ' ')}</option>)}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>Notes</label>
-                <input name="notes" value={form.notes} onChange={handleChange} placeholder="Optional notes…" />
-              </div>
-            </div>
-
-            <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>Cancel</button>
-              <button type="submit" className="btn-primary" disabled={saving || activeSuppliers.length === 0}>
-                {saving ? 'Saving…' : editingId ? 'Save changes' : 'Record intake'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       <div className="intakes-filters">
         <div className="filter-tabs">
           {FILTERS.map((f) => (
             <button key={f} className={`filter-tab${filter === f ? ' filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
-              {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>
+              {FILTER_LABELS[f] || f}
+              <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
                 ({f === 'all' ? intakes.length : intakes.filter((i) => i.material_status === f).length})
               </span>
             </button>
@@ -459,17 +91,17 @@ const IntakesPage = () => {
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
         >
-          <option value="">All types</option>
-          {MATERIAL_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+          <option value="">כל הסוגים</option>
+          {MATERIAL_TYPES.map((t) => <option key={t} value={t}>{MATERIAL_TYPE_HE[t] || t}</option>)}
         </select>
       </div>
 
-      {loading && <div className="loading-row">Loading intakes…</div>}
+      {loading && <div className="loading-row">טוען קליטות…</div>}
 
       {!loading && visible.length === 0 && (
         <div className="empty-state">
           <Package size={36} />
-          <p>{intakes.length === 0 ? 'No intakes recorded yet. Record the first one.' : 'No intakes match the current filter.'}</p>
+          <p>{intakes.length === 0 ? 'טרם נרשמו קליטות. רשום את הראשונה.' : 'אין קליטות התואמות לסינון הנוכחי.'}</p>
         </div>
       )}
 
@@ -480,15 +112,15 @@ const IntakesPage = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Supplier</th>
-                  <th>Type</th>
-                  <th>Source</th>
-                  <th>Net weight</th>
-                  <th>Eligible weight</th>
-                  <th>Delivery note</th>
-                  <th>Status</th>
-                  {isManager && <th>Recorded by</th>}
+                  <th>תאריך</th>
+                  <th>ספק</th>
+                  <th>סוג חומר</th>
+                  <th>מקור</th>
+                  <th>משקל נטו</th>
+                  <th>משקל זכאי</th>
+                  <th>תעודת משלוח</th>
+                  <th>סטטוס</th>
+                  {isManager && <th>נרשם ע"י</th>}
                   <th></th>
                 </tr>
               </thead>
@@ -497,8 +129,8 @@ const IntakesPage = () => {
                   <tr key={i.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(i.intake_date)}</td>
                     <td className="td-primary">{i.supplier_name || '—'}</td>
-                    <td><span className="tag">{i.material_type}</span></td>
-                    <td className="td-muted">{i.material_source?.replace(/_/g, ' ') || '—'}</td>
+                    <td><span className="tag">{MATERIAL_TYPE_HE[i.material_type] || i.material_type}</span></td>
+                    <td className="td-muted">{MATERIAL_SOURCE_HE[i.material_source] || i.material_source || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtKg(i.net_weight_kg)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {fmtKg(i.eligible_weight_kg)}
@@ -511,7 +143,7 @@ const IntakesPage = () => {
                     <td><code style={{ fontSize: '12px' }}>{i.delivery_note_number}</code></td>
                     <td>
                       <span className={`badge ${STATUS_BADGE[i.material_status] || 'badge--neutral'}`}>
-                        {i.material_status}
+                        {MATERIAL_STATUS_HE[i.material_status] || i.material_status}
                       </span>
                     </td>
                     {isManager && (
@@ -522,7 +154,7 @@ const IntakesPage = () => {
                     <td>
                       {isManager && (
                         <RowActionsMenu items={[
-                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleEdit(i) },
+                          { label: 'עריכה', icon: <Pencil size={14} />, onClick: () => navigate('/intakes/new', { state: { intake: i } }) },
                         ]} />
                       )}
                     </td>
@@ -542,16 +174,16 @@ const IntakesPage = () => {
                     <span className="intake-card__date">{fmtDate(i.intake_date)}</span>
                   </div>
                   <span className={`badge ${STATUS_BADGE[i.material_status] || 'badge--neutral'}`}>
-                    {i.material_status}
+                    {MATERIAL_STATUS_HE[i.material_status] || i.material_status}
                   </span>
                 </div>
                 <div className="intake-card__row">
-                  <span className="tag">{i.material_type}</span>
+                  <span className="tag">{MATERIAL_TYPE_HE[i.material_type] || i.material_type}</span>
                   <span className="intake-card__weight">{fmtKg(i.net_weight_kg)}</span>
                 </div>
                 <div className="intake-card__meta">
-                  <span>Note: <code>{i.delivery_note_number}</code></span>
-                  {i.created_by_name && <span>By: {i.created_by_name}</span>}
+                  <span>תעודה: <code>{i.delivery_note_number}</code></span>
+                  {i.created_by_name && <span>הוזן ע"י: {i.created_by_name}</span>}
                 </div>
               </div>
             ))}

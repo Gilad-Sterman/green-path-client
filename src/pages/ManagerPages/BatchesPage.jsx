@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Layers, Plus, X, AlertCircle, RefreshCw, CheckCircle2, XCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
@@ -9,11 +10,17 @@ import { fetchProducts } from '../../store/slices/productsSlice';
 import { fetchIntakes } from '../../store/slices/intakesSlice';
 import { getBatch } from '../../api/batches';
 
-const STATUS_BADGE = { in_progress: 'badge--warn', completed: 'badge--green', cancelled: 'badge--neutral' };
-const FILTERS = ['all', 'in_progress', 'completed', 'cancelled'];
+const STATUS_BADGE  = { in_progress: 'badge--warn', completed: 'badge--green', cancelled: 'badge--neutral' };
+const STATUS_HE     = { in_progress: 'בתהליך', completed: 'הושלם', cancelled: 'בוטל' };
+const FILTER_LABELS = { all: 'הכל', in_progress: 'בתהליך', completed: 'הושלם', cancelled: 'בוטל' };
+const FILTERS       = ['all', 'in_progress', 'completed', 'cancelled'];
+const MATERIAL_TYPE_HE = {
+  plastic: 'פלסטיק', paper: 'נייר / קרטון', metal: 'מתכת',
+  glass: 'זכוכית', textile: 'טקסטיל', rubber: 'גומי', mixed: 'מעורב', other: 'אחר',
+};
 
-const fmtKg   = (n) => n != null ? `${parseFloat(n).toLocaleString(undefined, { maximumFractionDigits: 2 })} kg` : '—';
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtKg   = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const shortId = (id) => id?.slice(0, 8).toUpperCase();
 
 const EMPTY_FORM = { product_id: '', output_weight_kg: '', notes: '' };
@@ -26,6 +33,7 @@ const BatchesPage = () => {
   const { list: intakes }  = useSelector((s) => s.intakes);
   const refreshedLabel = useRelativeTime(lastFetched);
 
+  const [searchParams] = useSearchParams();
   const [showForm, setShowForm]       = useState(false);
   const [form, setForm]               = useState(EMPTY_FORM);
   const [components, setComponents]   = useState([{ ...EMPTY_COMP }]);
@@ -43,6 +51,10 @@ const BatchesPage = () => {
     dispatch(fetchIntakes({ force: false }));
   }, [dispatch]);
 
+  useEffect(() => {
+    if (searchParams.get('new') === '1') setShowForm(true);
+  }, [searchParams]);
+
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
     setFormError('');
@@ -59,14 +71,21 @@ const BatchesPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.product_id)        { setFormError('Product is required.'); return; }
-    if (!form.output_weight_kg)  { setFormError('Output weight is required.'); return; }
+    if (!form.product_id)        { setFormError('יש לבחור מוצר.'); return; }
+    if (!form.output_weight_kg)  { setFormError('יש להזין משקל אצווה כולל.'); return; }
 
     const validComps = components.filter((c) => c.intake_id && c.weight_kg);
-    if (validComps.length === 0) { setFormError('At least one intake component is required.'); return; }
+    if (validComps.length === 0) { setFormError('יש להגדיר לפחות מקור קליטה אחד.'); return; }
 
     const hasIncomplete = components.some((c) => (c.intake_id && !c.weight_kg) || (!c.intake_id && c.weight_kg));
-    if (hasIncomplete) { setFormError('Each component needs both an intake and a weight.'); return; }
+    if (hasIncomplete) { setFormError('לכל מקור קליטה יש להזין גם קליטה וגם משקל.'); return; }
+
+    const sumComps = validComps.reduce((s, c) => s + parseFloat(c.weight_kg), 0);
+    const target   = parseFloat(form.output_weight_kg);
+    if (Math.abs(sumComps - target) > 0.01) {
+      setFormError(`סך משקלי המקורות (${sumComps.toFixed(2)}) חייב להיות שווה למשקל האצווה הכולל (${target.toFixed(2)}).`);
+      return;
+    }
 
     const payload = {
       product_id:       form.product_id,
@@ -83,30 +102,30 @@ const BatchesPage = () => {
     setSaving(false);
 
     if (createBatchThunk.fulfilled.match(result)) {
-      setToast('Batch created successfully.');
+      setToast('אצווה נוצרה בהצלחה.');
       handleClose();
       dispatch(fetchIntakes({ force: true }));
     } else {
-      setFormError(result.payload || 'Failed to create batch.');
+      setFormError(result.payload || 'יצירת האצווה נכשלה.');
     }
   };
 
   const handleComplete = async (batch) => {
     const result = await dispatch(completeBatchThunk(batch.id));
     if (completeBatchThunk.fulfilled.match(result)) {
-      setToast(`Batch ${shortId(batch.id)} marked as completed.`);
+      setToast(`אצווה ${shortId(batch.id)} סומנה כהושלמה.`);
     } else {
-      setToast(result.payload || 'Failed to complete batch.');
+      setToast(result.payload || 'סגירת האצווה נכשלה.');
     }
   };
 
   const handleCancel = async (batch) => {
     const result = await dispatch(cancelBatchThunk(batch.id));
     if (cancelBatchThunk.fulfilled.match(result)) {
-      setToast(`Batch ${shortId(batch.id)} cancelled.`);
+      setToast(`אצווה ${shortId(batch.id)} בוטלה.`);
       dispatch(fetchIntakes({ force: true }));
     } else {
-      setToast(result.payload || 'Failed to cancel batch.');
+      setToast(result.payload || 'ביטול האצווה נכשל.');
     }
   };
 
@@ -139,18 +158,18 @@ const BatchesPage = () => {
     <div className="manager-page">
       <div className="manager-page__header">
         <div>
-          <h1>Batches</h1>
-          <p className="page-subtitle">Combine intake components into production batches</p>
+          <h1>אצוות מוצר</h1>
+          <p className="page-subtitle">שיוך קליטות חומר גלם לאצוות ייצור</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div className="refresh-group">
             {refreshedLabel && <span className="last-refreshed">{refreshedLabel}</span>}
-            <button className="btn-ghost btn-ghost--icon" onClick={() => dispatch(fetchBatches({ force: true }))} disabled={loading} title="Refresh">
+            <button className="btn-ghost btn-ghost--icon" onClick={() => dispatch(fetchBatches({ force: true }))} disabled={loading} title="רענן">
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
             </button>
           </div>
           <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
-            <Plus size={16} /> New Batch
+            <Plus size={16} /> אצווה חדשה
           </button>
         </div>
       </div>
@@ -161,7 +180,7 @@ const BatchesPage = () => {
       {showForm && (
         <div className="form-card">
           <div className="form-card__header">
-            <h3>Create New Batch</h3>
+            <h3>יצירת אצווה חדשה</h3>
             <button className="icon-btn" onClick={handleClose}><X size={18} /></button>
           </div>
 
@@ -170,34 +189,34 @@ const BatchesPage = () => {
 
             <div className="form-row">
               <div className="form-field">
-                <label>Product <span className="required">*</span></label>
+                <label>תוצ"ג יעד <span className="required">*</span></label>
                 <select name="product_id" value={form.product_id} onChange={handleChange}>
-                  <option value="">— Select product —</option>
+                  <option value="">— בחר מוצר —</option>
                   {activeProducts.map((p) => (
                     <option key={p.id} value={p.id}>{`${p.name} (${p.sku})`}</option>
                   ))}
                 </select>
               </div>
               <div className="form-field">
-                <label>Output weight (kg) <span className="required">*</span></label>
+                <label>משקל אצווה כולל (ק"ג) <span className="required">*</span></label>
                 <input
                   name="output_weight_kg" type="number" step="0.01" min="0.01"
                   value={form.output_weight_kg} onChange={handleChange}
-                  placeholder="e.g. 480.00"
+                  placeholder="לדוגמה: 480.00"
                 />
               </div>
             </div>
 
             <div className="form-field">
-              <label>Notes</label>
-              <input name="notes" value={form.notes} onChange={handleChange} placeholder="Optional batch notes…" />
+              <label>הערות</label>
+              <input name="notes" value={form.notes} onChange={handleChange} placeholder="הערות נוספות לאצווה…" />
             </div>
 
             <div className="components-section">
               <div className="components-section__header">
-                <label>Intake components <span className="required">*</span></label>
+                <label>מקורות קליטה <span className="required">*</span></label>
                 <button type="button" className="btn-ghost btn-ghost--sm" onClick={addComponent}>
-                  <Plus size={13} /> Add intake
+                  <Plus size={13} /> הוסף קליטה
                 </button>
               </div>
 
@@ -214,30 +233,29 @@ const BatchesPage = () => {
                         value={comp.intake_id}
                         onChange={(e) => updateComponent(idx, 'intake_id', e.target.value)}
                       >
-                        <option value="">— Select intake —</option>
+                        <option value="">— בחר קליטה —</option>
                         {availableIntakes.map((i) => (
                           <option key={i.id} value={i.id}>
-                            {i.delivery_note_number} · {i.supplier_name} · {i.material_type} · {fmtKg(i.eligible_weight_kg)} eligible
+                            {i.delivery_note_number} · {i.supplier_name} · {MATERIAL_TYPE_HE[i.material_type] || i.material_type} · {fmtKg(i.eligible_weight_kg)} זמין
                           </option>
                         ))}
                       </select>
                       {selectedIntake && (
                         <span className="field-hint">
-                          Total eligible: <strong>{fmtKg(selectedIntake.eligible_weight_kg)}</strong>
-                          <span className="td-muted" style={{ marginLeft: '6px' }}>· {selectedIntake.material_source?.replace(/_/g, ' ')}</span>
+                          זמין לשיוך: <strong>{fmtKg(selectedIntake.eligible_weight_kg)}</strong>
                         </span>
                       )}
                     </div>
                     <div className="component-row__weight">
                       <input
                         type="number" step="0.01" min="0.01"
-                        placeholder="Weight kg"
+                        placeholder={'משקל ק"ג'}
                         value={comp.weight_kg}
                         onChange={(e) => updateComponent(idx, 'weight_kg', e.target.value)}
                       />
                     </div>
                     {components.length > 1 && (
-                      <button type="button" className="icon-btn icon-btn--danger" onClick={() => removeComponent(idx)} title="Remove">
+                      <button type="button" className="icon-btn icon-btn--danger" onClick={() => removeComponent(idx)} title="הסר">
                         <Trash2 size={14} />
                       </button>
                     )}
@@ -247,20 +265,25 @@ const BatchesPage = () => {
 
               {totalAllocated > 0 && (
                 <div className="allocation-summary">
-                  <span>Total input allocated: <strong>{totalAllocated.toFixed(2)} kg</strong></span>
-                  {form.output_weight_kg && (
-                    <span className="td-muted" style={{ marginLeft: '12px' }}>
-                      Output target: <strong>{parseFloat(form.output_weight_kg).toFixed(2)} kg</strong>
-                    </span>
-                  )}
+                  <span>סה"כ מוקצה: <strong>{fmtKg(totalAllocated)}</strong></span>
+                  {form.output_weight_kg && (() => {
+                    const target = parseFloat(form.output_weight_kg);
+                    const diff   = Math.abs(totalAllocated - target);
+                    return (
+                      <span className={diff > 0.01 ? 'allocation-summary__warn' : 'allocation-summary__ok'} style={{ marginRight: '12px' }}>
+                        יעד: <strong>{fmtKg(target)}</strong>
+                        {diff > 0.01 && <span> · הפרש: {fmtKg(diff)}</span>}
+                      </span>
+                    );
+                  })()}
                 </div>
               )}
             </div>
 
             <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>Cancel</button>
+              <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>ביטול</button>
               <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'Creating…' : 'Create batch'}
+                {saving ? 'יוצר…' : 'צור אצווה'}
               </button>
             </div>
           </form>
@@ -270,20 +293,20 @@ const BatchesPage = () => {
       <div className="filter-tabs">
         {FILTERS.map((f) => (
           <button key={f} className={`filter-tab${filter === f ? ' filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
-            {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
-            <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>
+            {FILTER_LABELS[f] || f}
+            <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
               ({f === 'all' ? batches.length : batches.filter((b) => b.status === f).length})
             </span>
           </button>
         ))}
       </div>
 
-      {loading && <div className="loading-row">Loading batches…</div>}
+      {loading && <div className="loading-row">טוען אצוות…</div>}
 
       {!loading && visible.length === 0 && (
         <div className="empty-state">
           <Layers size={36} />
-          <p>{batches.length === 0 ? 'No batches yet. Create the first one.' : 'No batches match the current filter.'}</p>
+          <p>{batches.length === 0 ? 'טרם נוצרו אצוות. צור את הראשונה.' : 'אין אצוות התואמות לסינון הנוכחי.'}</p>
         </div>
       )}
 
@@ -293,12 +316,13 @@ const BatchesPage = () => {
             <thead>
               <tr>
                 <th></th>
-                <th>Batch ID</th>
-                <th>Product</th>
-                <th>Output weight</th>
-                <th>Used</th>
-                <th>Status</th>
-                <th>Created</th>
+                <th>מזהה אצווה</th>
+                <th>מוצר</th>
+                <th>משקל כולל</th>
+                <th>נוצל</th>
+                <th>נותר</th>
+                <th>סטטוס</th>
+                <th>תאריך יצירה</th>
                 <th></th>
               </tr>
             </thead>
@@ -316,17 +340,18 @@ const BatchesPage = () => {
                     </td>
                     <td>{fmtKg(b.output_weight_kg)}</td>
                     <td>{fmtKg(b.used_weight_kg)}</td>
+                    <td>{fmtKg(b.remaining_weight_kg)}</td>
                     <td>
                       <span className={`badge ${STATUS_BADGE[b.status] || 'badge--neutral'}`}>
-                        {b.status}
+                        {STATUS_HE[b.status] || b.status}
                       </span>
                     </td>
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(b.created_at)}</td>
                     <td>
                       {b.status === 'in_progress' && (
                         <RowActionsMenu items={[
-                          { label: 'Mark complete', icon: <CheckCircle2 size={14} />, onClick: () => handleComplete(b) },
-                          { label: 'Cancel batch',  icon: <XCircle size={14} />,     onClick: () => handleCancel(b), danger: true },
+                          { label: 'סמן כהושלם', icon: <CheckCircle2 size={14} />, onClick: () => handleComplete(b) },
+                          { label: 'בטל אצווה',  icon: <XCircle size={14} />,     onClick: () => handleCancel(b), danger: true },
                         ]} />
                       )}
                     </td>
@@ -334,22 +359,22 @@ const BatchesPage = () => {
 
                   {expandedId === b.id && (
                     <tr className="row--detail">
-                      <td colSpan={8}>
+                      <td colSpan={9}>
                         <div className="batch-detail">
-                          {detailLoading && <span className="td-muted">Loading components…</span>}
+                          {detailLoading && <span className="td-muted">טוען פירוט…</span>}
                           {detailData[b.id] && (
                             <>
                               {detailData[b.id].notes && (
-                                <p className="batch-detail__notes"><strong>Notes:</strong> {detailData[b.id].notes}</p>
+                                <p className="batch-detail__notes"><strong>הערות:</strong> {detailData[b.id].notes}</p>
                               )}
                               <table className="components-table">
                                 <thead>
                                   <tr>
-                                    <th>Delivery note</th>
-                                    <th>Supplier</th>
-                                    <th>Material type</th>
-                                    <th>Allocated weight</th>
-                                    <th>Intake date</th>
+                                    <th>תעודת משלוח</th>
+                                    <th>ספק</th>
+                                    <th>סוג חומר</th>
+                                    <th>משקל מוקצה</th>
+                                    <th>תאריך קליטה</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -357,7 +382,7 @@ const BatchesPage = () => {
                                     <tr key={c.id}>
                                       <td><code style={{ fontSize: '12px' }}>{c.delivery_note_number}</code></td>
                                       <td>{c.supplier_name || '—'}</td>
-                                      <td><span className="tag">{c.material_type}</span></td>
+                                      <td><span className="tag">{MATERIAL_TYPE_HE[c.material_type] || c.material_type}</span></td>
                                       <td>{fmtKg(c.weight_kg)}</td>
                                       <td>{fmtDate(c.intake_date)}</td>
                                     </tr>

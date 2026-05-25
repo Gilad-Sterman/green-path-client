@@ -150,7 +150,7 @@ const FlagsPage = () => {
               onClick={() => setStatusFilter(f)}
             >
               {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-              <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>
+              <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
                 ({f === 'all' ? flags.length : flags.filter((fl) => fl.status === f).length})
               </span>
             </button>

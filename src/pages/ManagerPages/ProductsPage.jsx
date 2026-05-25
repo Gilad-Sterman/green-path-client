@@ -149,7 +149,7 @@ const ProductsPage = () => {
         {FILTERS.map((f) => (
           <button key={f} className={`filter-tab${filter === f ? ' filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
             {f.charAt(0).toUpperCase() + f.slice(1)}
-            <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '11px' }}>
+            <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
               ({f === 'all' ? products.length : f === 'active' ? products.filter((p) => p.is_active).length : products.filter((p) => !p.is_active).length})
             </span>
           </button>
