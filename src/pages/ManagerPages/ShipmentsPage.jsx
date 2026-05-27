@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback, Fragment } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Truck, Plus, X, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Trash2,
-  Package2, CheckCircle2, XCircle, Send,
+  CheckCircle2, XCircle, Send,
 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
@@ -17,27 +17,29 @@ import { fetchBatches } from '../../store/slices/batchesSlice';
 import { getShipment } from '../../api/shipments';
 
 const STATUS_BADGE = {
-  created:   'badge--warn',
-  shipped:   'badge--blue',
+  created: 'badge--warn',
+  shipped: 'badge--blue',
   delivered: 'badge--green',
   cancelled: 'badge--neutral',
 };
+const STATUS_HE = { created: 'נוצר', shipped: 'נשלח', delivered: 'נמסר', cancelled: 'בוטל' };
 
 const STATUS_TRANSITIONS = {
   created: [
-    { status: 'shipped',   label: 'Mark as shipped',    icon: <Send size={14} /> },
-    { status: 'cancelled', label: 'Cancel shipment',    icon: <XCircle size={14} />, danger: true },
+    { status: 'shipped', label: 'סמן כנשלח', icon: <Send size={14} /> },
+    { status: 'cancelled', label: 'בטל משלוח', icon: <XCircle size={14} />, danger: true },
   ],
   shipped: [
-    { status: 'delivered', label: 'Mark as delivered',  icon: <CheckCircle2 size={14} /> },
-    { status: 'cancelled', label: 'Cancel shipment',    icon: <XCircle size={14} />, danger: true },
+    { status: 'delivered', label: 'סמן כנמסר', icon: <CheckCircle2 size={14} /> },
+    { status: 'cancelled', label: 'בטל משלוח', icon: <XCircle size={14} />, danger: true },
   ],
 };
 
 const FILTERS = ['all', 'created', 'shipped', 'delivered', 'cancelled'];
+const FILTER_LABELS = { all: 'הכל', created: 'נוצר', shipped: 'נשלח', delivered: 'נמסר', cancelled: 'בוטל' };
 
-const fmtKg   = (n) => n != null ? `${parseFloat(n).toLocaleString(undefined, { maximumFractionDigits: 2 })} kg` : '—';
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtKg = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const shortId = (id) => id?.slice(0, 8).toUpperCase();
 
 const EMPTY_FORM = { customer_id: '', shipment_date: '', destination_address: '', notes: '' };
@@ -47,20 +49,21 @@ const ShipmentsPage = () => {
   const dispatch = useDispatch();
   const { list: shipments, loading, error, lastFetched } = useSelector((s) => s.shipments);
   const { list: customers } = useSelector((s) => s.customers);
-  const { list: batches }   = useSelector((s) => s.batches);
+  const { list: batches } = useSelector((s) => s.batches);
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [searchParams] = useSearchParams();
-  const [showForm, setShowForm]         = useState(false);
-  const [form, setForm]                 = useState(EMPTY_FORM);
-  const [items, setItems]               = useState([{ ...EMPTY_ITEM }]);
-  const [saving, setSaving]             = useState(false);
-  const [toast, setToast]               = useState('');
-  const [formError, setFormError]       = useState('');
-  const [filter, setFilter]             = useState('all');
-  const [expandedId, setExpandedId]     = useState(null);
-  const [detailData, setDetailData]     = useState({});
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  const [formError, setFormError] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [expandedId, setExpandedId] = useState(null);
+  const [detailData, setDetailData] = useState({});
   const [detailLoading, setDetailLoading] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     dispatch(fetchShipments({ force: false }));
@@ -77,7 +80,7 @@ const ShipmentsPage = () => {
     setFormError('');
   };
 
-  const addItem    = () => setItems((p) => [...p, { ...EMPTY_ITEM }]);
+  const addItem = () => setItems((p) => [...p, { ...EMPTY_ITEM }]);
   const removeItem = (idx) => setItems((p) => p.filter((_, i) => i !== idx));
   const updateItem = (idx, field, value) => {
     setItems((p) => p.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -90,22 +93,22 @@ const ShipmentsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.customer_id)              { setFormError('Customer is required.'); return; }
-    if (!form.shipment_date)            { setFormError('Shipment date is required.'); return; }
-    if (!form.destination_address.trim()) { setFormError('Destination address is required.'); return; }
+    if (!form.customer_id) { setFormError('יש לבחור לקוח.'); return; }
+    if (!form.shipment_date) { setFormError('יש להזין תאריך משלוח.'); return; }
+    if (!form.destination_address.trim()) { setFormError('יש להזין כתובת יעד.'); return; }
 
     const validItems = items.filter((it) => it.batch_id && it.weight_kg);
-    if (validItems.length === 0)        { setFormError('At least one batch item is required.'); return; }
+    if (validItems.length === 0) { setFormError('יש לבחור לפחות אצווה אחת.'); return; }
     const hasIncomplete = items.some((it) => (it.batch_id && !it.weight_kg) || (!it.batch_id && it.weight_kg));
-    if (hasIncomplete)                  { setFormError('Each item needs both a batch and a weight.'); return; }
+    if (hasIncomplete) { setFormError('כל שורה חייבת לכלול אצווה ומשקל.'); return; }
 
     const payload = {
-      customer_id:         form.customer_id,
-      shipment_date:       form.shipment_date,
+      customer_id: form.customer_id,
+      shipment_date: form.shipment_date,
       destination_address: form.destination_address.trim(),
-      notes:               form.notes || undefined,
-      items:               validItems.map((it) => ({
-        batch_id:  it.batch_id,
+      notes: form.notes || undefined,
+      items: validItems.map((it) => ({
+        batch_id: it.batch_id,
         weight_kg: parseFloat(it.weight_kg),
       })),
     };
@@ -115,26 +118,44 @@ const ShipmentsPage = () => {
     setSaving(false);
 
     if (createShipmentThunk.fulfilled.match(result)) {
-      setToast('Shipment created — credits auto-generated.');
+      setToast('משלוח נוצר — זיכויים נוצרו אוטומטית.');
       dispatch(invalidateCredits());
       dispatch(fetchBatches({ force: true }));
       handleClose();
     } else {
-      setFormError(result.payload || 'Failed to create shipment.');
+      setFormError(result.payload || 'יצירת המשלוח נכשלה.');
     }
   };
 
-  const handleStatusChange = async (shipment, status) => {
-    const result = await dispatch(updateShipmentStatusThunk({ id: shipment.id, status }));
-    if (updateShipmentStatusThunk.fulfilled.match(result)) {
-      const label = status.charAt(0).toUpperCase() + status.slice(1);
-      setToast(`Shipment ${shortId(shipment.id)} marked as ${label}.`);
-      if (detailData[shipment.id]) {
-        setDetailData((p) => ({ ...p, [shipment.id]: { ...p[shipment.id], status } }));
-      }
-    } else {
-      setToast(result.payload || 'Failed to update status.');
+  const handleStatusChange = (shipment, status) => {
+    if (status === 'cancelled') {
+      setConfirm({
+        title: 'ביטול משלוח',
+        lines: ['ביטול המשלוח הוא פעולה סופית.'],
+        warning: 'פעולה בלתי הפיכה.',
+        label: 'בטל משלוח',
+        danger: true,
+        onConfirm: async () => {
+          setConfirm(null);
+          const result = await dispatch(updateShipmentStatusThunk({ id: shipment.id, status }));
+          if (updateShipmentStatusThunk.fulfilled.match(result)) {
+            setToast(`משלוח ${shortId(shipment.id)} בוטל.`);
+            if (detailData[shipment.id]) setDetailData((p) => ({ ...p, [shipment.id]: { ...p[shipment.id], status } }));
+          } else {
+            setToast(result.payload || 'עדכון סטטוס נכשל.');
+          }
+        },
+      });
+      return;
     }
+    dispatch(updateShipmentStatusThunk({ id: shipment.id, status })).then((result) => {
+      if (updateShipmentStatusThunk.fulfilled.match(result)) {
+        setToast(`משלוח ${shortId(shipment.id)} עודכן ל${STATUS_HE[status]}.`);
+        if (detailData[shipment.id]) setDetailData((p) => ({ ...p, [shipment.id]: { ...p[shipment.id], status } }));
+      } else {
+        setToast(result.payload || 'עדכון סטטוס נכשל.');
+      }
+    });
   };
 
   const toggleExpand = useCallback(async (shipmentId) => {
@@ -145,7 +166,7 @@ const ShipmentsPage = () => {
     try {
       const { data } = await getShipment(shipmentId);
       setDetailData((p) => ({ ...p, [shipmentId]: data.data.shipment }));
-    } catch (_) {}
+    } catch (_) { }
     setDetailLoading(false);
   }, [expandedId, detailData]);
 
@@ -160,15 +181,15 @@ const ShipmentsPage = () => {
   const visible = shipments.filter((s) => filter === 'all' || s.status === filter);
   const activeCustomers = customers.filter((c) => c.is_active);
   const shippableBatches = batches.filter(
-    (b) => b.status !== 'cancelled' && parseFloat(b.remaining_weight_kg) > 0
+    (b) => b.status !== 'cancelled' && b.status !== 'failed' &&
+      b.is_active !== false && parseFloat(b.remaining_weight_kg) > 0
   );
 
   return (
     <div className="manager-page">
       <div className="manager-page__header">
         <div>
-          <h1>Shipments</h1>
-          <p className="page-subtitle">Ship batches to customers and generate recycling credits</p>
+          <h1>משלוחים</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div className="refresh-group">
@@ -177,16 +198,16 @@ const ShipmentsPage = () => {
               className="btn-ghost btn-ghost--icon"
               onClick={() => dispatch(fetchShipments({ force: true }))}
               disabled={loading}
-              title="Refresh"
+              title="רענן"
             >
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
             </button>
           </div>
-          <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
-            <Plus size={16} /> New Shipment
-          </button>
         </div>
       </div>
+      <button className="btn-primary new-shipment-btn" onClick={() => setShowForm(true)}>
+        <Plus size={16} /> משלוח חדש
+      </button>
 
       <Toast message={toast} onClose={() => setToast('')} />
       {error && <div className="alert alert--error"><AlertCircle size={16} />{error}</div>}
@@ -194,7 +215,7 @@ const ShipmentsPage = () => {
       {showForm && (
         <div className="form-card">
           <div className="form-card__header">
-            <h3>Create New Shipment</h3>
+            <h3>יצירת משלוח חדש</h3>
             <button className="icon-btn" onClick={handleClose}><X size={18} /></button>
           </div>
 
@@ -203,53 +224,51 @@ const ShipmentsPage = () => {
               <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>
             )}
 
-            <div className="form-row">
-              <div className="form-field">
-                <label>Customer <span className="required">*</span></label>
-                <select name="customer_id" value={form.customer_id} onChange={handleChange}>
-                  <option value="">— Select customer —</option>
-                  {activeCustomers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>Shipment date <span className="required">*</span></label>
-                <input
-                  name="shipment_date"
-                  type="date"
-                  value={form.shipment_date}
-                  onChange={handleChange}
-                  max={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-            </div>
-
             <div className="form-field">
-              <label>Destination address <span className="required">*</span></label>
+              <label>לקוח <span className="required">*</span></label>
+              <select name="customer_id" value={form.customer_id} onChange={handleChange}>
+                <option value="">— בחר לקוח —</option>
+                {activeCustomers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>תאריך משלוח <span className="required">*</span></label>
               <input
-                name="destination_address"
-                value={form.destination_address}
+                name="shipment_date"
+                type="date"
+                value={form.shipment_date}
                 onChange={handleChange}
-                placeholder="e.g. 12 Industrial St, Tel Aviv"
+                max={new Date().toISOString().split('T')[0]}
               />
             </div>
 
             <div className="form-field">
-              <label>Notes</label>
-              <input name="notes" value={form.notes} onChange={handleChange} placeholder="Optional notes…" />
+              <label>כתובת יעד <span className="required">*</span></label>
+              <input
+                name="destination_address"
+                value={form.destination_address}
+                onChange={handleChange}
+                placeholder="לדוגמה: רחוב התעשייה 12, תל אביב"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>הערות</label>
+              <input name="notes" value={form.notes} onChange={handleChange} placeholder="הערות אופציונליות…" />
             </div>
 
             <div className="components-section">
               <div className="components-section__header">
-                <label>Batch items <span className="required">*</span></label>
+                <label>אצוות משלוח <span className="required">*</span></label>
                 <button type="button" className="btn-ghost btn-ghost--sm" onClick={addItem}>
-                  <Plus size={13} /> Add batch
+                  <Plus size={13} /> הוסף אצווה
                 </button>
               </div>
 
               {items.map((item, idx) => {
-                const selectedBatch  = batches.find((b) => b.id === item.batch_id);
+                const selectedBatch = batches.find((b) => b.id === item.batch_id);
                 const availableBatches = shippableBatches.filter(
                   (b) => !usedBatchIds.includes(b.id) || b.id === item.batch_id
                 );
@@ -261,17 +280,17 @@ const ShipmentsPage = () => {
                         value={item.batch_id}
                         onChange={(e) => updateItem(idx, 'batch_id', e.target.value)}
                       >
-                        <option value="">— Select batch —</option>
+                        <option value="">— בחר אצווה —</option>
                         {availableBatches.map((b) => (
                           <option key={b.id} value={b.id}>
-                            {shortId(b.id)} · {b.product_name} · {fmtKg(b.remaining_weight_kg)} remaining
+                            {shortId(b.id)} · {b.product_name} · {fmtKg(b.remaining_weight_kg)} נותר
                           </option>
                         ))}
                       </select>
                       {selectedBatch && (
                         <span className="field-hint">
-                          Remaining: <strong>{fmtKg(selectedBatch.remaining_weight_kg)}</strong>
-                          <span className="td-muted" style={{ marginLeft: '6px' }}>
+                          יתרה: <strong>{fmtKg(selectedBatch.remaining_weight_kg)}</strong>
+                          <span className="td-muted" style={{ marginRight: '6px' }}>
                             · {selectedBatch.product_sku}
                           </span>
                         </span>
@@ -280,7 +299,7 @@ const ShipmentsPage = () => {
                     <div className="component-row__weight">
                       <input
                         type="number" step="0.01" min="0.01"
-                        placeholder="Weight kg"
+                        placeholder='משקל ק"ג'
                         value={item.weight_kg}
                         onChange={(e) => updateItem(idx, 'weight_kg', e.target.value)}
                       />
@@ -290,7 +309,7 @@ const ShipmentsPage = () => {
                         type="button"
                         className="icon-btn icon-btn--danger"
                         onClick={() => removeItem(idx)}
-                        title="Remove"
+                        title="הסר"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -301,9 +320,9 @@ const ShipmentsPage = () => {
 
               {totalShipWeight > 0 && (
                 <div className="allocation-summary">
-                  <span>Total shipment weight: <strong>{totalShipWeight.toFixed(2)} kg</strong></span>
-                  <span className="td-muted" style={{ marginLeft: '12px' }}>
-                    Credits will be auto-generated on save
+                  <span>סך משקל המשלוח: <strong>{fmtKg(totalShipWeight)}</strong></span>
+                  <span className="td-muted" style={{ marginRight: '12px' }}>
+                    זיכויים ייווצרו אוטומטית בשמירה
                   </span>
                 </div>
               )}
@@ -311,10 +330,10 @@ const ShipmentsPage = () => {
 
             <div className="form-actions">
               <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>
-                Cancel
+                ביטול
               </button>
               <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'Creating…' : 'Create shipment'}
+                {saving ? 'יוצר…' : 'צור משלוח'}
               </button>
             </div>
           </form>
@@ -328,7 +347,7 @@ const ShipmentsPage = () => {
             className={`filter-tab${filter === f ? ' filter-tab--active' : ''}`}
             onClick={() => setFilter(f)}
           >
-            {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+            {FILTER_LABELS[f]}
             <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
               ({f === 'all' ? shipments.length : shipments.filter((s) => s.status === f).length})
             </span>
@@ -336,112 +355,106 @@ const ShipmentsPage = () => {
         ))}
       </div>
 
-      {loading && <div className="loading-row">Loading shipments…</div>}
+      {loading && <div className="loading-row">טוען משלוחים…</div>}
 
       {!loading && visible.length === 0 && (
         <div className="empty-state">
           <Truck size={36} />
           <p>
             {shipments.length === 0
-              ? 'No shipments yet. Create the first one.'
-              : 'No shipments match the current filter.'}
+              ? 'טרם נוצרו משלוחים. צור את הראשון.'
+              : 'אין משלוחים התואמים לסינון הנוכחי.'}
           </p>
         </div>
       )}
 
       {!loading && visible.length > 0 && (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Shipment ID</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Eligible output</th>
-                <th>Status</th>
-                <th>Destination</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((s) => (
-                <Fragment key={s.id}>
-                  <tr className={expandedId === s.id ? 'row--expanded' : ''}>
-                    <td style={{ width: '32px', cursor: 'pointer' }} onClick={() => toggleExpand(s.id)}>
-                      {expandedId === s.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </td>
-                    <td><code style={{ fontSize: '12px' }}>{shortId(s.id)}</code></td>
-                    <td className="td-primary">{s.customer_name}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(s.shipment_date)}</td>
-                    <td>{fmtKg(s.eligible_output_kg)}</td>
-                    <td>
-                      <span className={`badge ${STATUS_BADGE[s.status] || 'badge--neutral'}`}>
-                        {s.status}
-                      </span>
-                    </td>
-                    <td className="td-truncate" title={s.destination_address}>
-                      {s.destination_address}
-                    </td>
-                    <td>
-                      {STATUS_TRANSITIONS[s.status] && (
-                        <RowActionsMenu
-                          items={STATUS_TRANSITIONS[s.status].map((t) => ({
-                            label:   t.label,
-                            icon:    t.icon,
-                            variant: t.danger ? 'danger' : undefined,
-                            onClick: () => handleStatusChange(s, t.status),
-                          }))}
-                        />
-                      )}
-                    </td>
-                  </tr>
-
-                  {expandedId === s.id && (
-                    <tr className="row--detail">
-                      <td colSpan={8}>
-                        <div className="batch-detail">
-                          {detailLoading && <span className="td-muted">Loading items…</span>}
-                          {detailData[s.id] && (
-                            <>
-                              {detailData[s.id].notes && (
-                                <p className="batch-detail__notes">
-                                  <strong>Notes:</strong> {detailData[s.id].notes}
-                                </p>
-                              )}
-                              <p className="batch-detail__notes">
-                                <strong>Destination:</strong> {detailData[s.id].destination_address}
-                              </p>
-                              <table className="components-table">
-                                <thead>
-                                  <tr>
-                                    <th>Batch ID</th>
-                                    <th>Product</th>
-                                    <th>SKU</th>
-                                    <th>Weight shipped</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {detailData[s.id].items?.map((it) => (
-                                    <tr key={it.id}>
-                                      <td><code style={{ fontSize: '12px' }}>{shortId(it.batch_id)}</code></td>
-                                      <td>{it.product_name || '—'}</td>
-                                      <td><span className="tag">{it.product_sku || '—'}</span></td>
-                                      <td>{fmtKg(it.weight_kg)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+        <div className="mobile-cards">
+          {visible.map((s) => (
+            <div key={s.id} className="mobile-card">
+              <div className="mobile-card__header">
+                <div>
+                  <span className="mobile-card__title">{s.customer_name}</span>
+                  <code className="mobile-card__sku">{shortId(s.id)}</code>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className={`badge ${STATUS_BADGE[s.status] || 'badge--neutral'}`}>
+                    {STATUS_HE[s.status] || s.status}
+                  </span>
+                  {STATUS_TRANSITIONS[s.status] && (
+                    <RowActionsMenu items={STATUS_TRANSITIONS[s.status].map((t) => ({
+                      label: t.label, icon: t.icon, danger: t.danger,
+                      onClick: () => handleStatusChange(s, t.status),
+                    }))} />
                   )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                </div>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">תאריך:</span>
+                <span>{fmtDate(s.shipment_date)}</span>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">יציאה כשירה:</span>
+                <strong>{fmtKg(s.eligible_output_kg)}</strong>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">יעד:</span>
+                <span>{s.destination_address}</span>
+              </div>
+              <button
+                className="btn-ghost btn-ghost--sm"
+                style={{ marginTop: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                onClick={() => toggleExpand(s.id)}
+              >
+                {expandedId === s.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                {expandedId === s.id ? 'סגור פירוט' : 'אצוות משלוח'}
+              </button>
+              {expandedId === s.id && (
+                <div className="batch-card-detail">
+                  {detailLoading && <span className="td-muted">טוען…</span>}
+                  {detailData[s.id] && (
+                    <>
+                      {detailData[s.id].notes && (
+                        <p className="batch-card-detail__notes"><strong>הערות:</strong> {detailData[s.id].notes}</p>
+                      )}
+                      {detailData[s.id].items?.map((it) => (
+                        <div key={it.id} className="batch-card-detail__row">
+                          <div>
+                            <code style={{ fontSize: '11px' }}>{shortId(it.batch_id)}</code>
+                            <span className="tag" style={{ marginRight: '6px' }}>{it.product_sku || '—'}</span>
+                          </div>
+                          <strong>{fmtKg(it.weight_kg)}</strong>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {confirm && (
+        <div className="confirm-overlay" onClick={() => setConfirm(null)}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="confirm-modal__title">{confirm.title}</h3>
+            {confirm.lines?.map((line, i) => (
+              <p key={i} className="confirm-modal__line">{line}</p>
+            ))}
+            {confirm.warning && (
+              <p className="confirm-modal__warn">{confirm.warning}</p>
+            )}
+            <div className="confirm-modal__actions">
+              <button className="btn-ghost" onClick={() => setConfirm(null)}>ביטול</button>
+              <button
+                className={confirm.danger ? 'btn-danger' : 'btn-primary'}
+                onClick={confirm.onConfirm}
+              >
+                {confirm.label}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

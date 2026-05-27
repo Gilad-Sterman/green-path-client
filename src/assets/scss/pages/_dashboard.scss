@@ -10,7 +10,11 @@
   @include flex-between;
   margin-bottom: $space-6;
 
-  h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: $color-text; }
+  h1 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+  }
 }
 
 .dashboard__subtitle {
@@ -28,22 +32,32 @@
 
 // ── KPI cards ────────────────────────────────────────────────────────────────
 .dashboard__kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  border-bottom-left-radius: $radius-md;
+  border-bottom-right-radius: $radius-md;
+  border: 1px solid $color-gray;
   margin-bottom: $space-2;
+  padding: $space-5;
 }
 
 .kpi-card {
   // @include card;
-  background-color: $color-gray-light;
-  border-radius: $radius-md;
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
   gap: $space-1;
-  padding: $space-5;
+  padding-block: $space-2;
+  border-bottom: 1px solid $color-gray;
 
-  &--warn { border-left: 3px solid $color-warning; }
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &--warn {
+    border-left: 3px solid $color-warning;
+  }
 
   &--link {
     text-decoration: none;
@@ -58,17 +72,26 @@
   }
 }
 
+.admin-dashboard__kpis {
+  display: flex;
+  justify-content: space-evenly;
+  gap: $space-2;
+  padding: $space-5;
+
+  .kpi-card {
+    @include card;
+    flex-direction: column;
+    padding: $space-5;
+  }
+}
+
 .kpi-card__label {
-  font-size: $font-size-xs;
-  color: $color-text-muted;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: $font-weight-semi;
+  font-size: $font-size-sm;
+  color: $color-text;
 }
 
 .kpi-card__value {
-  font-size: $font-size-2xl;
-  font-weight: $font-weight-bold;
+  font-size: $font-size-sm;
   color: $color-text;
 }
 
@@ -156,8 +179,16 @@
   font-family: inherit;
   transition: border-color $transition-fast, color $transition-fast, background $transition-fast;
 
-  &:hover   { border-color: $color-primary; color: $color-text; }
-  &--active { background: $color-primary; border-color: $color-primary; color: #fff; }
+  &:hover {
+    border-color: $color-primary;
+    color: $color-text;
+  }
+
+  &--active {
+    background: $color-primary;
+    border-color: $color-primary;
+    color: #fff;
+  }
 }
 
 // ── Entity type tabs ──────────────────────────────────────────────────────────
@@ -185,7 +216,11 @@
   font-family: inherit;
   transition: color $transition-fast, border-color $transition-fast;
 
-  &--active  { color: $color-text; background-color: $color-gray-light; border-color: $color-gray-light; }
+  &--active {
+    color: $color-text;
+    background-color: $color-gray-light;
+    border-color: $color-gray-light;
+  }
 }
 
 // ── Manager mobile dashboard ──────────────────────────────────────────────────
@@ -199,9 +234,13 @@
 .mgr-dashboard__header {
   @include flex-between;
   align-items: flex-start;
-  margin-bottom: $space-5;
+  margin-bottom: $space-2;
 
-  h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: $color-text; }
+  h1 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+  }
 }
 
 .mgr-dashboard__subtitle {
@@ -211,12 +250,10 @@
 }
 
 .mgr-section-title {
-  font-size: 10px;
+  font-size: 20px;
   font-weight: $font-weight-bold;
-  color: $color-text-muted;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   margin: $space-5 0 $space-3;
+  text-align: center;
 }
 
 .mgr-flags-alert {
@@ -235,7 +272,9 @@
   flex-shrink: 0;
   transition: background $transition-fast;
 
-  &:hover { background: #ffe0b2; }
+  &:hover {
+    background: #ffe0b2;
+  }
 }
 
 // ── Production action cards ────────────────────────────────────────────────────
@@ -246,16 +285,20 @@
 }
 
 .prod-action {
-  @include card;
-  display: flex;
+  border-radius: $radius-full;
+  background-color: $color-gray;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  text-align: center;
   align-items: center;
   gap: $space-4;
-  padding: $space-4 $space-5;
+  padding: $space-1 $space-3;
   text-decoration: none;
   color: $color-text;
   transition: transform $transition-fast, box-shadow $transition-fast;
 
-  &:hover, &:active {
+  &:hover,
+  &:active {
     transform: translateY(-1px);
     box-shadow: $shadow-md;
   }
@@ -265,11 +308,12 @@
     color: #fff;
 
     .prod-action__icon {
-      background: rgba(#fff, 0.18);
       color: #fff;
     }
 
-    .prod-action__desc { color: rgba(#fff, 0.72); }
+    .prod-action__desc {
+      color: rgba(#fff, 0.72);
+    }
   }
 }
 
@@ -278,8 +322,6 @@
   width: 44px;
   height: 44px;
   border-radius: $radius-md;
-  background: $color-primary-light;
-  color: $color-primary;
   flex-shrink: 0;
 }
 
@@ -300,8 +342,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background-color: $color-text-dark;
+  padding: $space-2 $space-3;
+  border-top-left-radius: $radius-lg;
+  border-top-right-radius: $radius-lg;
 
-  .mgr-section-title { margin-bottom: 0; }
+  .mgr-section-title {
+    margin: 0;
+    color: #fff;
+  }
 }
 
 .period-tabs {
@@ -334,23 +383,31 @@
 
 // ── Management grid ────────────────────────────────────────────────────────────
 .mgmt-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: $space-3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-1;
   margin-bottom: $space-4;
 }
 
 .mgmt-tile {
   @include card;
+  width: 100%;
+  background-color: $color-surface;
+  border: 1px solid $color-border;
   display: flex;
   align-items: center;
-  gap: $space-3;
+  justify-content: center;
+  gap: $space-1;
   padding: $space-3 $space-4;
   text-decoration: none;
   color: $color-text;
   transition: transform $transition-fast, box-shadow $transition-fast;
 
-  &:hover { transform: translateY(-1px); box-shadow: $shadow-sm; }
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $shadow-sm;
+  }
 }
 
 .mgmt-tile__icon {
@@ -405,8 +462,16 @@
 }
 
 .employee-dashboard__greeting {
-  h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; }
-  p  { font-size: $font-size-sm; color: $color-text-muted; margin-top: $space-1; }
+  h1 {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+  }
+
+  p {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    margin-top: $space-1;
+  }
 }
 
 .cta-btn {
@@ -446,9 +511,13 @@
   aspect-ratio: 1;
   transition: transform $transition-fast;
 
-  svg { color: $color-primary; }
+  svg {
+    color: $color-primary;
+  }
 
-  &:hover { transform: translateY(-2px); }
+  &:hover {
+    transform: translateY(-2px);
+  }
 
   &--disabled {
     opacity: 0.5;

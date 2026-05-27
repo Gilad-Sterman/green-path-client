@@ -80,3 +80,13 @@
 @mixin tablet {
   @media (max-width: 960px) { @content; }
 }
+
+@mixin mobile-card-item {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}

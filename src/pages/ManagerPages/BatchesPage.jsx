@@ -1,25 +1,25 @@
-import { useEffect, useState, useCallback, Fragment } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Layers, Plus, X, AlertCircle, RefreshCw, CheckCircle2, XCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Layers, Plus, X, AlertCircle, RefreshCw, XCircle, ChevronDown, ChevronUp, Trash2, Lock, LockOpen, XOctagon } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
-import { fetchBatches, createBatchThunk, completeBatchThunk, cancelBatchThunk, clearBatchesError } from '../../store/slices/batchesSlice';
+import { fetchBatches, createBatchThunk, completeBatchThunk, cancelBatchThunk, blockBatchThunk, unblockBatchThunk, failBatchThunk, clearBatchesError } from '../../store/slices/batchesSlice';
 import { fetchProducts } from '../../store/slices/productsSlice';
 import { fetchIntakes } from '../../store/slices/intakesSlice';
 import { getBatch } from '../../api/batches';
 
-const STATUS_BADGE  = { in_progress: 'badge--warn', completed: 'badge--green', cancelled: 'badge--neutral' };
-const STATUS_HE     = { in_progress: 'בתהליך', completed: 'הושלם', cancelled: 'בוטל' };
-const FILTER_LABELS = { all: 'הכל', in_progress: 'בתהליך', completed: 'הושלם', cancelled: 'בוטל' };
-const FILTERS       = ['all', 'in_progress', 'completed', 'cancelled'];
+const STATUS_BADGE = { in_progress: 'badge--warn', completed: 'badge--neutral', cancelled: 'badge--neutral', failed: 'badge--warn' };
+const STATUS_HE = { in_progress: 'פעיל', completed: 'לא פעיל', cancelled: 'בוטל', failed: 'נפסלה' };
+const FILTER_LABELS = { all: 'הכל', in_progress: 'בתהליך', completed: 'הושלם', cancelled: 'בוטל', failed: 'נפסלה' };
+const FILTERS = ['all', 'in_progress', 'completed', 'cancelled', 'failed'];
 const MATERIAL_TYPE_HE = {
   plastic: 'פלסטיק', paper: 'נייר / קרטון', metal: 'מתכת',
   glass: 'זכוכית', textile: 'טקסטיל', rubber: 'גומי', mixed: 'מעורב', other: 'אחר',
 };
 
-const fmtKg   = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
+const fmtKg = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const shortId = (id) => id?.slice(0, 8).toUpperCase();
 
@@ -30,20 +30,21 @@ const BatchesPage = () => {
   const dispatch = useDispatch();
   const { list: batches, loading, error, lastFetched } = useSelector((s) => s.batches);
   const { list: products } = useSelector((s) => s.products);
-  const { list: intakes }  = useSelector((s) => s.intakes);
+  const { list: intakes } = useSelector((s) => s.intakes);
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [searchParams] = useSearchParams();
-  const [showForm, setShowForm]       = useState(false);
-  const [form, setForm]               = useState(EMPTY_FORM);
-  const [components, setComponents]   = useState([{ ...EMPTY_COMP }]);
-  const [saving, setSaving]           = useState(false);
-  const [toast, setToast]             = useState('');
-  const [formError, setFormError]     = useState('');
-  const [filter, setFilter]           = useState('all');
-  const [expandedId, setExpandedId]   = useState(null);
-  const [detailData, setDetailData]   = useState({});
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [components, setComponents] = useState([{ ...EMPTY_COMP }]);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  const [formError, setFormError] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [expandedId, setExpandedId] = useState(null);
+  const [detailData, setDetailData] = useState({});
   const [detailLoading, setDetailLoading] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     dispatch(fetchBatches({ force: false }));
@@ -60,7 +61,7 @@ const BatchesPage = () => {
     setFormError('');
   };
 
-  const addComponent    = () => setComponents((p) => [...p, { ...EMPTY_COMP }]);
+  const addComponent = () => setComponents((p) => [...p, { ...EMPTY_COMP }]);
   const removeComponent = (idx) => setComponents((p) => p.filter((_, i) => i !== idx));
   const updateComponent = (idx, field, value) => {
     setComponents((p) => p.map((c, i) => (i === idx ? { ...c, [field]: value } : c)));
@@ -71,8 +72,8 @@ const BatchesPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.product_id)        { setFormError('יש לבחור מוצר.'); return; }
-    if (!form.output_weight_kg)  { setFormError('יש להזין משקל אצווה כולל.'); return; }
+    if (!form.product_id) { setFormError('יש לבחור מוצר.'); return; }
+    if (!form.output_weight_kg) { setFormError('יש להזין משקל אצווה כולל.'); return; }
 
     const validComps = components.filter((c) => c.intake_id && c.weight_kg);
     if (validComps.length === 0) { setFormError('יש להגדיר לפחות מקור קליטה אחד.'); return; }
@@ -81,17 +82,17 @@ const BatchesPage = () => {
     if (hasIncomplete) { setFormError('לכל מקור קליטה יש להזין גם קליטה וגם משקל.'); return; }
 
     const sumComps = validComps.reduce((s, c) => s + parseFloat(c.weight_kg), 0);
-    const target   = parseFloat(form.output_weight_kg);
+    const target = parseFloat(form.output_weight_kg);
     if (Math.abs(sumComps - target) > 0.01) {
       setFormError(`סך משקלי המקורות (${sumComps.toFixed(2)}) חייב להיות שווה למשקל האצווה הכולל (${target.toFixed(2)}).`);
       return;
     }
 
     const payload = {
-      product_id:       form.product_id,
+      product_id: form.product_id,
       output_weight_kg: parseFloat(form.output_weight_kg),
-      notes:            form.notes || undefined,
-      components:       validComps.map((c) => ({
+      notes: form.notes || undefined,
+      components: validComps.map((c) => ({
         intake_id: c.intake_id,
         weight_kg: parseFloat(c.weight_kg),
       })),
@@ -119,14 +120,73 @@ const BatchesPage = () => {
     }
   };
 
-  const handleCancel = async (batch) => {
-    const result = await dispatch(cancelBatchThunk(batch.id));
-    if (cancelBatchThunk.fulfilled.match(result)) {
-      setToast(`אצווה ${shortId(batch.id)} בוטלה.`);
-      dispatch(fetchIntakes({ force: true }));
+  const handleCancel = (batch) => {
+    setConfirm({
+      title: 'ביטול אצווה',
+      lines: ['ביטול האצווה ישחרר את המשקל המוקצה בחזרה לחומרי הגלם.'],
+      warning: 'פעולה בלתי הפיכה.',
+      label: 'בטל אצווה',
+      danger: true,
+      onConfirm: async () => {
+        setConfirm(null);
+        const result = await dispatch(cancelBatchThunk(batch.id));
+        if (cancelBatchThunk.fulfilled.match(result)) {
+          setToast(`אצווה ${shortId(batch.id)} בוטלה.`);
+          dispatch(fetchIntakes({ force: true }));
+        } else {
+          setToast(result.payload || 'ביטול האצווה נכשל.');
+        }
+      },
+    });
+  };
+
+  const handleBlock = (batch) => {
+    setConfirm({
+      title: 'השבתת אצווה',
+      lines: ['לא תוכלו להשתמש בה עוד למשלוחים או לאצוות.'],
+      label: 'השבת אצווה',
+      danger: true,
+      onConfirm: async () => {
+        setConfirm(null);
+        const result = await dispatch(blockBatchThunk(batch.id));
+        if (blockBatchThunk.fulfilled.match(result)) {
+          setToast(`אצווה ${shortId(batch.id)} הושבתה.`);
+        } else {
+          setToast(result.payload || 'השבתת האצווה נכשלה.');
+        }
+      },
+    });
+  };
+
+  const handleUnblock = async (batch) => {
+    const result = await dispatch(unblockBatchThunk(batch.id));
+    if (unblockBatchThunk.fulfilled.match(result)) {
+      setToast(`אצווה ${shortId(batch.id)} שוחררה.`);
     } else {
-      setToast(result.payload || 'ביטול האצווה נכשל.');
+      setToast(result.payload || 'שחרור האצווה נכשל.');
     }
+  };
+
+  const handleFail = (batch) => {
+    setConfirm({
+      title: 'פסילת אצווה',
+      lines: [
+        'לא תוכלו להשתמש בה עוד למשלוחים.',
+        'האצווה תמשיך להיות זמינה לשימוש בפתיחת אצוות.',
+      ],
+      warning: 'שימו לב: זוהי פעולה בלתי הפיכה.',
+      label: 'פסול אצווה',
+      danger: true,
+      onConfirm: async () => {
+        setConfirm(null);
+        const result = await dispatch(failBatchThunk(batch.id));
+        if (failBatchThunk.fulfilled.match(result)) {
+          setToast(`אצווה ${shortId(batch.id)} נפסלה.`);
+        } else {
+          setToast(result.payload || 'פסילת האצווה נכשלה.');
+        }
+      },
+    });
   };
 
   const toggleExpand = useCallback(async (batchId) => {
@@ -137,7 +197,7 @@ const BatchesPage = () => {
     try {
       const { data } = await getBatch(batchId);
       setDetailData((p) => ({ ...p, [batchId]: data.data.batch }));
-    } catch (_) {}
+    } catch (_) { }
     setDetailLoading(false);
   }, [expandedId, detailData]);
 
@@ -159,7 +219,6 @@ const BatchesPage = () => {
       <div className="manager-page__header">
         <div>
           <h1>אצוות מוצר</h1>
-          <p className="page-subtitle">שיוך קליטות חומר גלם לאצוות ייצור</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div className="refresh-group">
@@ -168,11 +227,11 @@ const BatchesPage = () => {
               <RefreshCw size={15} className={loading ? 'spin' : ''} />
             </button>
           </div>
-          <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
-            <Plus size={16} /> אצווה חדשה
-          </button>
         </div>
       </div>
+      <button className="btn-primary new-batch-btn" onClick={() => setShowForm(true)}>
+        <Plus size={16} /> אצווה חדשה
+      </button>
 
       <Toast message={toast} onClose={() => setToast('')} />
       {error && <div className="alert alert--error"><AlertCircle size={16} />{error}</div>}
@@ -187,24 +246,22 @@ const BatchesPage = () => {
           <form onSubmit={handleSubmit} className="manager-form">
             {formError && <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>}
 
-            <div className="form-row">
-              <div className="form-field">
-                <label>תוצ"ג יעד <span className="required">*</span></label>
-                <select name="product_id" value={form.product_id} onChange={handleChange}>
-                  <option value="">— בחר מוצר —</option>
-                  {activeProducts.map((p) => (
-                    <option key={p.id} value={p.id}>{`${p.name} (${p.sku})`}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>משקל אצווה כולל (ק"ג) <span className="required">*</span></label>
-                <input
-                  name="output_weight_kg" type="number" step="0.01" min="0.01"
-                  value={form.output_weight_kg} onChange={handleChange}
-                  placeholder="לדוגמה: 480.00"
-                />
-              </div>
+            <div className="form-field">
+              <label>תוצ"ג יעד <span className="required">*</span></label>
+              <select name="product_id" value={form.product_id} onChange={handleChange}>
+                <option value="">— בחר מוצר —</option>
+                {activeProducts.map((p) => (
+                  <option key={p.id} value={p.id}>{`${p.name} (${p.sku})`}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>משקל אצווה כולל (ק"ג) <span className="required">*</span></label>
+              <input
+                name="output_weight_kg" type="number" step="0.01" min="0.01"
+                value={form.output_weight_kg} onChange={handleChange}
+                placeholder="לדוגמה: 480.00"
+              />
             </div>
 
             <div className="form-field">
@@ -268,7 +325,7 @@ const BatchesPage = () => {
                   <span>סה"כ מוקצה: <strong>{fmtKg(totalAllocated)}</strong></span>
                   {form.output_weight_kg && (() => {
                     const target = parseFloat(form.output_weight_kg);
-                    const diff   = Math.abs(totalAllocated - target);
+                    const diff = Math.abs(totalAllocated - target);
                     return (
                       <span className={diff > 0.01 ? 'allocation-summary__warn' : 'allocation-summary__ok'} style={{ marginRight: '12px' }}>
                         יעד: <strong>{fmtKg(target)}</strong>
@@ -311,94 +368,110 @@ const BatchesPage = () => {
       )}
 
       {!loading && visible.length > 0 && (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>מזהה אצווה</th>
-                <th>מוצר</th>
-                <th>משקל כולל</th>
-                <th>נוצל</th>
-                <th>נותר</th>
-                <th>סטטוס</th>
-                <th>תאריך יצירה</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((b) => (
-                <Fragment key={b.id}>
-                  <tr className={expandedId === b.id ? 'row--expanded' : ''}>
-                    <td style={{ width: '32px', cursor: 'pointer' }} onClick={() => toggleExpand(b.id)}>
-                      {expandedId === b.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </td>
-                    <td><code style={{ fontSize: '12px' }}>{shortId(b.id)}</code></td>
-                    <td className="td-primary">
-                      {b.product_name}
-                      <span className="td-muted" style={{ fontSize: '11px', marginLeft: '6px' }}>{b.product_sku}</span>
-                    </td>
-                    <td>{fmtKg(b.output_weight_kg)}</td>
-                    <td>{fmtKg(b.used_weight_kg)}</td>
-                    <td>{fmtKg(b.remaining_weight_kg)}</td>
-                    <td>
-                      <span className={`badge ${STATUS_BADGE[b.status] || 'badge--neutral'}`}>
-                        {STATUS_HE[b.status] || b.status}
-                      </span>
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(b.created_at)}</td>
-                    <td>
-                      {b.status === 'in_progress' && (
-                        <RowActionsMenu items={[
-                          { label: 'סמן כהושלם', icon: <CheckCircle2 size={14} />, onClick: () => handleComplete(b) },
-                          { label: 'בטל אצווה',  icon: <XCircle size={14} />,     onClick: () => handleCancel(b), danger: true },
-                        ]} />
-                      )}
-                    </td>
-                  </tr>
-
-                  {expandedId === b.id && (
-                    <tr className="row--detail">
-                      <td colSpan={9}>
-                        <div className="batch-detail">
-                          {detailLoading && <span className="td-muted">טוען פירוט…</span>}
-                          {detailData[b.id] && (
-                            <>
-                              {detailData[b.id].notes && (
-                                <p className="batch-detail__notes"><strong>הערות:</strong> {detailData[b.id].notes}</p>
-                              )}
-                              <table className="components-table">
-                                <thead>
-                                  <tr>
-                                    <th>תעודת משלוח</th>
-                                    <th>ספק</th>
-                                    <th>סוג חומר</th>
-                                    <th>משקל מוקצה</th>
-                                    <th>תאריך קליטה</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {detailData[b.id].components?.map((c) => (
-                                    <tr key={c.id}>
-                                      <td><code style={{ fontSize: '12px' }}>{c.delivery_note_number}</code></td>
-                                      <td>{c.supplier_name || '—'}</td>
-                                      <td><span className="tag">{MATERIAL_TYPE_HE[c.material_type] || c.material_type}</span></td>
-                                      <td>{fmtKg(c.weight_kg)}</td>
-                                      <td>{fmtDate(c.intake_date)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+        <div className="mobile-cards">
+          {visible.map((b) => (
+            <div key={b.id} className="mobile-card">
+              <div className="mobile-card__header">
+                <div>
+                  <span className="mobile-card__title">{b.product_name}</span>
+                  <code className="mobile-card__sku">{shortId(b.id)} · {b.product_sku}</code>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {b.is_active === false ? (
+                    <span className="badge badge--warn">חסומה</span>
+                  ) : b.status === 'in_progress' ? (
+                    <button className="status-toggle status-toggle--on" onClick={() => handleComplete(b)} title="לחץ לסיים אצווה" aria-pressed>
+                      <span className="status-toggle__track"><span className="status-toggle__thumb" /></span>
+                      <span className="status-toggle__label">פעיל</span>
+                    </button>
+                  ) : (
+                    <span className={`badge ${STATUS_BADGE[b.status] || 'badge--neutral'}`}>
+                      {STATUS_HE[b.status] || b.status}
+                    </span>
                   )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                  {b.is_active === false ? (
+                    <RowActionsMenu items={[
+                      { label: 'שחרר חסימה', icon: <LockOpen size={14} />, onClick: () => handleUnblock(b) },
+                    ]} />
+                  ) : b.status === 'in_progress' ? (
+                    <RowActionsMenu items={[
+                      { label: 'חסום אצווה', icon: <Lock size={14} />, onClick: () => handleBlock(b), danger: true },
+                      { label: 'פסול אצווה', icon: <XOctagon size={14} />, onClick: () => handleFail(b), danger: true },
+                      { label: 'בטל אצווה', icon: <XCircle size={14} />, onClick: () => handleCancel(b), danger: true },
+                    ]} />
+                  ) : null}
+                </div>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">משקל כולל:</span>
+                <strong>{fmtKg(b.output_weight_kg)}</strong>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">נוצל:</span>
+                <span>{fmtKg(b.used_weight_kg)}</span>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">נותר:</span>
+                <strong>{fmtKg(b.remaining_weight_kg)}</strong>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">תאריך:</span>
+                <span>{fmtDate(b.created_at)}</span>
+              </div>
+              <button
+                className="btn-ghost btn-ghost--sm"
+                style={{ marginTop: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                onClick={() => toggleExpand(b.id)}
+              >
+                {expandedId === b.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                {expandedId === b.id ? 'סגור פירוט' : 'מקורות קליטה'}
+              </button>
+              {expandedId === b.id && (
+                <div className="batch-card-detail">
+                  {detailLoading && <span className="td-muted">טוען…</span>}
+                  {detailData[b.id] && (
+                    <>
+                      {detailData[b.id].notes && (
+                        <p className="batch-card-detail__notes"><strong>הערות:</strong> {detailData[b.id].notes}</p>
+                      )}
+                      {detailData[b.id].components?.map((c) => (
+                        <div key={c.id} className="batch-card-detail__row">
+                          <div>
+                            <code style={{ fontSize: '11px' }}>{c.delivery_note_number}</code>
+                            <span className="tag" style={{ marginRight: '6px' }}>{MATERIAL_TYPE_HE[c.material_type] || c.material_type}</span>
+                          </div>
+                          <strong>{fmtKg(c.weight_kg)}</strong>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {confirm && (
+        <div className="confirm-overlay" onClick={() => setConfirm(null)}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="confirm-modal__title">{confirm.title}</h3>
+            {confirm.lines?.map((line, i) => (
+              <p key={i} className="confirm-modal__line">{line}</p>
+            ))}
+            {confirm.warning && (
+              <p className="confirm-modal__warn">{confirm.warning}</p>
+            )}
+            <div className="confirm-modal__actions">
+              <button className="btn-ghost" onClick={() => setConfirm(null)}>ביטול</button>
+              <button
+                className={confirm.danger ? 'btn-danger' : 'btn-primary'}
+                onClick={confirm.onConfirm}
+              >
+                {confirm.label}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

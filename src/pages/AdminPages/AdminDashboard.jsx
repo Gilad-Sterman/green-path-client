@@ -131,7 +131,7 @@ const AdminDashboard = () => {
 
       {activeTab === 'factories' && (
         <>
-          <div className="dashboard__kpis">
+          <div className="admin-dashboard__kpis">
             <div className="kpi-card">
               <span className="kpi-card__value">{loading ? '…' : totalFactories}</span>
               <span className="kpi-card__label">סה״כ מפעלים</span>
@@ -157,7 +157,7 @@ const AdminDashboard = () => {
       {activeTab === 'flags' && (
         <>
           <p className="dashboard__section-title">חומרים וקרדיטים</p>
-          <div className="dashboard__kpis">
+          <div className="admin-dashboard__kpis">
             <div className="kpi-card">
               <span className="kpi-card__label">סה"כ קרדיטים</span>
               <span className="kpi-card__value">{creditsLoading ? '…' : fmtKg(totalCreditsKg)}</span>
@@ -166,7 +166,7 @@ const AdminDashboard = () => {
           </div>
 
           <p className="dashboard__section-title">דגלים</p>
-          <div className="dashboard__kpis">
+          <div className="admin-dashboard__kpis">
             <div className="kpi-card">
               <span className="kpi-card__label">סה"כ דגלים</span>
               <span className="kpi-card__value">{totalFlags === null ? '…' : totalFlags}</span>

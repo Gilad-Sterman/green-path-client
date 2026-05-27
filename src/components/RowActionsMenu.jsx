@@ -4,6 +4,7 @@ import { MoreVertical } from 'lucide-react';
 
 const MENU_ITEM_H = 40;
 const MENU_PADDING = 8;
+const MENU_W      = 164;
 
 const RowActionsMenu = ({ items }) => {
   const [open, setOpen]       = useState(false);
@@ -17,9 +18,12 @@ const RowActionsMenu = ({ items }) => {
     const spaceBelow = window.innerHeight - r.bottom;
     const openUp     = spaceBelow < menuH + 8;
 
+    const rawRight = window.innerWidth - r.right;
+    const right     = Math.max(4, Math.min(rawRight, window.innerWidth - MENU_W - 4));
+
     setStyle({
       position: 'fixed',
-      right:    `${window.innerWidth - r.right}px`,
+      right:    `${right}px`,
       zIndex:   9999,
       ...(openUp
         ? { bottom: `${window.innerHeight - r.top + 4}px`, top: 'auto' }

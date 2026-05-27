@@ -14,7 +14,6 @@ import FactoriesPage      from './pages/AdminPages/FactoriesPage';
 import FactoryDetailPage  from './pages/AdminPages/FactoryDetailPage';
 import AdminUsersPage     from './pages/AdminPages/AdminUsersPage';
 import SuppliersPage     from './pages/ManagerPages/SuppliersPage';
-import CustomersPage     from './pages/ManagerPages/CustomersPage';
 import ProductsPage      from './pages/ManagerPages/ProductsPage';
 import IntakesPage      from './pages/ManagerPages/IntakesPage';
 import BatchesPage      from './pages/ManagerPages/BatchesPage';
@@ -82,7 +81,7 @@ const App = () => {
             {/* manager + internal_admin */}
             <Route element={<RoleRoute roles={['manager', 'internal_admin']} />}>
               <Route path="suppliers" element={<SuppliersPage />} />
-              <Route path="customers" element={<CustomersPage />} />
+              <Route path="customers" element={<SuppliersPage />} />
               <Route path="products"  element={<ProductsPage />} />
               <Route path="credits"   element={<CreditsPage />} />
               <Route path="flags"     element={<FlagsPage />} />

@@ -1,0 +1,133 @@
+@use '../base/vars' as *;
+@use '../base/mixins' as *;
+
+// ── Card list (replaces data table on all screen sizes) ─────────────────────
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.mobile-card {
+  @include mobile-card-item;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $space-2;
+  }
+
+  &__title {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+    display: block;
+  }
+
+  &__sku {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    display: block;
+    margin-top: 2px;
+  }
+
+  &__desc {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    margin: 0;
+  }
+
+  &__tags {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    flex-wrap: wrap;
+  }
+
+  &__label {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    flex-shrink: 0;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: $font-size-sm;
+  }
+
+  &__tags {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-2;
+    font-size: $font-size-sm;
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $space-1;
+    }
+  }
+}
+
+// ── Status toggle switch ──────────────────────────────────────────────────────
+// Usage: <button class="status-toggle [status-toggle--on]">
+//          <span class="status-toggle__track"><span class="status-toggle__thumb"/></span>
+//          <span class="status-toggle__label">פעיל</span>
+//        </button>
+
+.status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+
+  &__track {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    border-radius: $radius-full;
+    background: $color-gray;
+    flex-shrink: 0;
+    transition: background $transition-base;
+  }
+
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    transition: transform $transition-base;
+    transform: translateX(3px);
+  }
+
+  &__label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    color: $color-text-muted;
+    transition: color $transition-fast;
+  }
+
+  &--on {
+    .status-toggle__track { background: $color-success; }
+    .status-toggle__thumb { transform: translateX(19px); }
+    .status-toggle__label { color: $color-success; }
+  }
+
+  &:hover:not(:disabled) { opacity: 0.82; }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+}

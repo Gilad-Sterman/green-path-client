@@ -3,14 +3,14 @@ import { useSelector } from 'react-redux';
 import { Home, PlusCircle, Package, Layers, Truck, Flag } from 'lucide-react';
 
 const EMPLOYEE_NAV = [
-  { path: '/intakes',     icon: Package,    label: 'קליטות' },
+  { path: '/intakes',     icon: Package,    label: 'כניסות' },
   { path: '/dashboard',   icon: Home,       label: 'בית',         end: true },
   { path: '/intakes/new', icon: PlusCircle, label: 'קליטה חדשה' },
 ];
 
 const MANAGER_NAV = [
   { path: '/dashboard',   icon: Home,    label: 'בית',      end: true },
-  { path: '/intakes',     icon: Package, label: 'קליטות' },
+  { path: '/intakes',     icon: Package, label: 'כניסות' },
   { path: '/batches',     icon: Layers,  label: 'אצוות' },
   { path: '/shipments',   icon: Truck,   label: 'משלוחים' },
   { path: '/flags',       icon: Flag,    label: 'דגלים',    isBadge: true },

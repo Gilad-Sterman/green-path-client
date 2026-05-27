@@ -130,7 +130,7 @@
 }
 
 .intake-card {
-  @include card;
+  @include mobile-card-item;
   padding: $space-4;
   display: flex;
   flex-direction: column;

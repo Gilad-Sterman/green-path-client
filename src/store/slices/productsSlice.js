@@ -79,7 +79,7 @@ const productsSlice = createSlice({
   extraReducers: (builder) => {
     const updateInList = (state, action) => {
       const idx = state.list.findIndex((p) => p.id === action.payload.id);
-      if (idx !== -1) state.list[idx] = action.payload;
+      if (idx !== -1) state.list[idx] = { ...state.list[idx], ...action.payload };
     };
 
     builder

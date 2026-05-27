@@ -209,6 +209,9 @@
 
 .btn-ghost {
   padding: $space-2 $space-5;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
   border-radius: $radius-md;
   border: 1.5px solid $color-border;
   background: transparent;
