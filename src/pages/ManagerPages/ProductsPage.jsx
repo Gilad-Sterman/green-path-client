@@ -14,14 +14,15 @@ const FILTERS = ['all', 'active', 'inactive'];
 const FILTER_LABELS = { all: 'הכל', active: 'פעיל', inactive: 'לא פעיל' };
 
 const RECIPE_MATERIALS = [
-  { value: 'PET', label: 'PET', is_recycled: true },
-  { value: 'HDPE', label: 'HDPE', is_recycled: true },
-  { value: 'PP', label: 'PP', is_recycled: true },
-  { value: 'LDPE', label: 'LDPE', is_recycled: true },
-  { value: 'PVC', label: 'PVC', is_recycled: true },
-  { value: 'mixed', label: 'מעורב', is_recycled: true },
-  { value: 'other', label: 'אחר', is_recycled: true },
-  { value: 'virgin', label: 'וירג׳ין', is_recycled: false },
+  { value: 'PET',   label: 'PET',     is_recycled: true  },
+  { value: 'HDPE',  label: 'HDPE',    is_recycled: true  },
+  { value: 'PP',    label: 'PP',      is_recycled: true  },
+  { value: 'LDPE',  label: 'LDPE',    is_recycled: true  },
+  { value: 'PVC',   label: 'PVC',     is_recycled: true  },
+  { value: 'PE',    label: 'PE',      is_recycled: true  },
+  { value: 'mixed', label: 'מעורב',   is_recycled: true  },
+  { value: 'other', label: 'אחר',     is_recycled: true  },
+  { value: 'virgin',label: 'וירג׳ין', is_recycled: false },
 ];
 const EMPTY_RECIPE_ROW = { material_type: '', is_recycled: true, percent: '' };
 

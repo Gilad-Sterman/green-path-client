@@ -13,12 +13,12 @@ import {
   deactivateCustomerThunk, reactivateCustomerThunk, clearCustomersError,
 } from '../../store/slices/customersSlice';
 
-const MATERIAL_TYPES   = ['plastic', 'paper', 'metal', 'glass', 'textile', 'rubber', 'mixed', 'other'];
+const MATERIAL_TYPES   = ['PET', 'HDPE', 'PP', 'LDPE', 'PVC', 'PE', 'mixed', 'other'];
 const MATERIAL_SOURCES = ['post_consumer', 'post_industrial', 'commercial', 'municipal', 'other'];
 
 const MATERIAL_TYPE_HE = {
-  plastic: 'פלסטיק', paper: 'נייר / קרטון', metal: 'מתכת',
-  glass: 'זכוכית', textile: 'טקסטיל', rubber: 'גומי', mixed: 'מעורב', other: 'אחר',
+  PET: 'PET', HDPE: 'HDPE', PP: 'PP', LDPE: 'LDPE',
+  PVC: 'PVC', PE: 'PE', mixed: 'מעורב', other: 'אחר',
 };
 const MATERIAL_SOURCE_HE = {
   post_consumer: 'פוסט-צרכני', post_industrial: 'פוסט-תעשייתי',

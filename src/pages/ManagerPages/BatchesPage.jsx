@@ -16,8 +16,8 @@ const STATUS_HE = { in_progress: 'פעיל', completed: 'לא פעיל', cancell
 const FILTER_LABELS = { all: 'הכל', in_progress: 'בתהליך', completed: 'הושלם', cancelled: 'בוטל', failed: 'נפסלה' };
 const FILTERS = ['all', 'in_progress', 'completed', 'cancelled', 'failed'];
 const MATERIAL_TYPE_HE = {
-  plastic: 'פלסטיק', paper: 'נייר / קרטון', metal: 'מתכת',
-  glass: 'זכוכית', textile: 'טקסטיל', rubber: 'גומי', mixed: 'מעורב', other: 'אחר',
+  PET: 'PET', HDPE: 'HDPE', PP: 'PP', LDPE: 'LDPE',
+  PVC: 'PVC', PE: 'PE', mixed: 'מעורב', other: 'אחר',
 };
 
 const fmtKg = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';

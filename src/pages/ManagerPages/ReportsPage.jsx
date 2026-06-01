@@ -27,8 +27,8 @@ const KpiCard = ({ icon: Icon, label, value, hint, variant }) => (
 );
 
 const MATERIAL_COLORS = {
-  plastic: '#4caf50', paper: '#2196f3', metal: '#ff9800',
-  glass: '#9c27b0', textile: '#e91e63', rubber: '#795548',
+  PET: '#4caf50', HDPE: '#2196f3', PP: '#ff9800',
+  LDPE: '#9c27b0', PVC: '#e91e63', PE: '#795548',
   mixed: '#607d8b', other: '#9e9e9e',
 };
 

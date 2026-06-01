@@ -7,16 +7,16 @@ import { fetchSuppliers } from '../../store/slices/suppliersSlice';
 import { fetchFlagsSummary, invalidateFlags } from '../../store/slices/flagsSlice';
 import { analyzeDocument, uploadDocument } from '../../api/documents';
 
-const MATERIAL_TYPES   = ['plastic', 'paper', 'metal', 'glass', 'textile', 'rubber', 'mixed', 'other'];
+const MATERIAL_TYPES   = ['PET', 'HDPE', 'PP', 'LDPE', 'PVC', 'PE', 'mixed', 'other'];
 
 const MATERIAL_ALIASES = {
-  plastic:  ['פלסטיק', 'פלסטיק', 'פי.וי.סי', 'pvc', 'pe', 'pp', 'plastic'],
-  paper:    ['נייר', 'קרטון', 'paper', 'cardboard', 'carton'],
-  metal:    ['מתכת', 'ברזל', 'אלומיניום', 'נחושת', 'metal', 'iron', 'aluminium', 'aluminum', 'copper', 'steel'],
-  glass:    ['זכוכית', 'glass'],
-  textile:  ['טקסטיל', 'בד', 'בגדים', 'textile', 'fabric', 'clothing'],
-  rubber:   ['גומי', 'צמיג', 'rubber', 'tyre', 'tire'],
-  mixed:    ['מעורב', 'mixed'],
+  PET:   ['pet', 'פ.א.ט', 'polyethylene terephthalate'],
+  HDPE:  ['hdpe', 'high density polyethylene', 'פוליאתילן בצפיפות גבוהה'],
+  PP:    ['pp', 'polypropylene', 'פוליפרופילן'],
+  LDPE:  ['ldpe', 'low density polyethylene', 'פוליאתילן בצפיפות נמוכה'],
+  PVC:   ['pvc', 'פי.וי.סי', 'polyvinyl chloride'],
+  PE:    ['pe', 'polyethylene', 'פוליאתילן'],
+  mixed: ['מעורב', 'mixed'],
 };
 
 const matchMaterialType = (hint = '') => {
@@ -39,8 +39,8 @@ const EMPTY_FORM = {
 };
 
 const MATERIAL_TYPE_HE = {
-  plastic: 'פלסטיק', paper: 'נייר / קרטון', metal: 'מתכת',
-  glass: 'זכוכית', textile: 'טקסטיל', rubber: 'גומי', mixed: 'מעורב', other: 'אחר',
+  PET: 'PET', HDPE: 'HDPE', PP: 'PP', LDPE: 'LDPE',
+  PVC: 'PVC', PE: 'PE', mixed: 'מעורב', other: 'אחר',
 };
 const MATERIAL_SOURCE_HE = {
   post_consumer: 'פוסט-צרכני', post_industrial: 'פוסט-תעשייתי',
