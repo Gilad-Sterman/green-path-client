@@ -1,6 +1,7 @@
 import client from './client';
 
-export const getMe        = ()          => client.get('/users/me');
+export const getMe          = ()          => client.get('/users/me');
+export const deactivateSelf = ()          => client.post('/users/me/deactivate');
 export const getUsers     = (params)    => client.get('/users', { params });
 export const getUser      = (id)        => client.get(`/users/${id}`);
 export const createUser   = (data)      => client.post('/users', data);

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Users, Plus, X, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Users, Plus, X, AlertCircle, RefreshCw } from 'lucide-react';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import {
   fetchUsers, createUserThunk, deactivateUserThunk, reactivateUserThunk,
-  deleteUserThunk, clearUsersError,
+  clearUsersError,
 } from '../../store/slices/usersSlice';
 
 const EMPTY_FORM = { full_name: '', phone_number: '' };
@@ -31,7 +32,10 @@ const fmtDate = (d) =>
 const TeamPage = () => {
   const dispatch = useDispatch();
   const { list: users, loading, error, lastFetched } = useSelector((s) => s.users);
+  const { user: currentUser } = useSelector((s) => s.auth);
   const refreshedLabel = useRelativeTime(lastFetched);
+
+  const [searchParams] = useSearchParams();
 
   const [showForm,     setShowForm]     = useState(false);
   const [form,         setForm]         = useState(EMPTY_FORM);
@@ -40,11 +44,14 @@ const TeamPage = () => {
   const [toast,        setToast]        = useState('');
   const [statusFilter,  setStatusFilter]  = useState('all');
   const [roleFilter,    setRoleFilter]    = useState('');
-  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     dispatch(fetchUsers({ force: false }));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (searchParams.get('invite') === '1') setShowForm(true);
+  }, [searchParams]);
 
   const handleChange = (e) => { setForm((p) => ({ ...p, [e.target.name]: e.target.value })); setFormError(''); };
 
@@ -75,17 +82,6 @@ const TeamPage = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirmDelete) return;
-    const result = await dispatch(deleteUserThunk(confirmDelete.id));
-    if (deleteUserThunk.fulfilled.match(result)) {
-      setToast(`${confirmDelete.name} נמחק/ה.`);
-    } else {
-      setToast(result.payload || 'שגיאה במחיקה.');
-    }
-    setConfirmDelete(null);
-  };
-
   const handleToggleActive = async (user) => {
     const thunk = user.is_active ? deactivateUserThunk : reactivateUserThunk;
     const result = await dispatch(thunk(user.id));
@@ -95,6 +91,7 @@ const TeamPage = () => {
   };
 
   const visible = users.filter((u) => {
+    if (u.id === currentUser?.id)                    return false;
     if (statusFilter === 'active'   && !u.is_active) return false;
     if (statusFilter === 'inactive' && u.is_active)  return false;
     if (roleFilter && u.role !== roleFilter)          return false;
@@ -164,7 +161,8 @@ const TeamPage = () => {
       <div className="team-filters">
         <div className="filter-tabs">
           {STATUS_FILTERS.map((f) => {
-            const count = f === 'all' ? users.length : f === 'active' ? users.filter((u) => u.is_active).length : users.filter((u) => !u.is_active).length;
+            const others = users.filter((u) => u.id !== currentUser?.id);
+            const count = f === 'all' ? others.length : f === 'active' ? others.filter((u) => u.is_active).length : others.filter((u) => !u.is_active).length;
             return (
               <button key={f} className={`filter-tab${statusFilter === f ? ' filter-tab--active' : ''}`} onClick={() => setStatusFilter(f)}>
                 {STATUS_LABELS[f]}
@@ -218,29 +216,8 @@ const TeamPage = () => {
                 <span className="mobile-card__label">הצטרף/ה:</span>
                 <span>{fmtDate(u.created_at)}</span>
               </div>
-              <div className="mobile-card__row" style={{ marginTop: '4px' }}>
-                <button
-                  className="btn-ghost btn-ghost--sm btn-ghost--danger"
-                  onClick={() => setConfirmDelete({ id: u.id, name: u.full_name })}
-                  title="מחק משתמש"
-                >
-                  <Trash2 size={13} /> מחק
-                </button>
-              </div>
             </div>
           ))}
-        </div>
-      )}
-      {confirmDelete && (
-        <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-            <h4>מחיקת משתמש</h4>
-            <p>האם למחוק את <strong>{confirmDelete.name}</strong>? פעולה זו אינה ניתנת לביטול.</p>
-            <div className="confirm-modal__actions">
-              <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>ביטול</button>
-              <button className="btn-danger" onClick={handleDelete}>מחק</button>
-            </div>
-          </div>
         </div>
       )}
     </div>

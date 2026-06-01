@@ -22,6 +22,7 @@ import CreditsPage      from './pages/ManagerPages/CreditsPage';
 import FlagsPage        from './pages/ManagerPages/FlagsPage';
 import TeamPage         from './pages/ManagerPages/TeamPage';
 import NewIntakePage       from './pages/EmployeePages/NewIntakePage';
+import SettingsPage        from './pages/SettingsPage/SettingsPage';
 import ReportsPage         from './pages/ManagerPages/ReportsPage';
 import AdminReportsPage    from './pages/AdminPages/AdminReportsPage';
 
@@ -76,6 +77,7 @@ const App = () => {
               <Route path="intakes"   element={<IntakesPage />} />
               <Route path="batches"   element={<BatchesPage />} />
               <Route path="shipments" element={<ShipmentsPage />} />
+              <Route path="settings"  element={<SettingsPage />} />
             </Route>
 
             {/* manager + internal_admin */}

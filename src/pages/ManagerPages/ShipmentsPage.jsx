@@ -45,6 +45,8 @@ const shortId = (id) => id?.slice(0, 8).toUpperCase();
 const ShipmentsPage = () => {
   const dispatch = useDispatch();
   const { list: shipments, loading, error, lastFetched } = useSelector((s) => s.shipments);
+  const { user } = useSelector((s) => s.auth);
+  const isManager = user?.role !== 'employee';
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [searchParams] = useSearchParams();
@@ -187,7 +189,7 @@ const ShipmentsPage = () => {
                   <span className={`badge ${STATUS_BADGE[s.status] || 'badge--neutral'}`}>
                     {STATUS_HE[s.status] || s.status}
                   </span>
-                  {STATUS_TRANSITIONS[s.status] && (
+                  {isManager && STATUS_TRANSITIONS[s.status] && (
                     <RowActionsMenu items={STATUS_TRANSITIONS[s.status].map((t) => ({
                       label: t.label, icon: t.icon, danger: t.danger,
                       onClick: () => handleStatusChange(s, t.status),

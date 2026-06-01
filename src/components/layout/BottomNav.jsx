@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Home, PlusCircle, Package, Layers, Truck, Flag } from 'lucide-react';
+import { Home, Package, Layers, Truck, Flag } from 'lucide-react';
 
 const EMPLOYEE_NAV = [
-  { path: '/intakes',     icon: Package,    label: 'כניסות' },
-  { path: '/dashboard',   icon: Home,       label: 'בית',         end: true },
-  { path: '/intakes/new', icon: PlusCircle, label: 'קליטה חדשה' },
+  { path: '/dashboard',  icon: Home,    label: 'בית',      end: true },
+  { path: '/intakes',    icon: Package, label: 'כניסות' },
+  { path: '/batches',    icon: Layers,  label: 'אצוות' },
+  { path: '/shipments',  icon: Truck,   label: 'משלוחים' },
 ];
 
 const MANAGER_NAV = [

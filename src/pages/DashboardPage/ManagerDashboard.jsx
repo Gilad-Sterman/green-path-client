@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Package, Layers, Truck, Award, Flag, Users, Box,
   Building2, BarChart3, Users2, AlertTriangle,
-  Plus,
+  Plus, Settings,
 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchIntakes } from '../../store/slices/intakesSlice';
@@ -23,10 +23,10 @@ const MGMT_TILES = [
   { to: '/shipments', icon: Truck, label: 'משלוחים' },
   { to: '/intakes', icon: Package, label: 'ניהול כניסות' },
   { to: '/suppliers', icon: Building2, label: 'ניהול ספקים ולקוחות' },
-  { to: '/team', icon: Users2, label: 'צוות' },
   // { to: '/credits', icon: Award, label: 'קרדיטים' },
   // { to: '/reports', icon: BarChart3, label: 'דו"ח' },
   { to: '/flags', icon: Flag, label: 'דגלים' },
+  { to: '/settings', icon: Settings, label: 'הגדרות' },
 ];
 
 const getPeriodStart = (p) => {

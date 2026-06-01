@@ -1,32 +1,40 @@
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { PlusCircle, Package, Clock } from 'lucide-react';
+import { Plus, Package, Layers, Truck, ChevronLeft, Settings } from 'lucide-react';
 
 const EmployeeDashboard = () => {
   const { user } = useSelector((state) => state.auth);
-  const firstName = user?.full_name?.split(' ')[0] || 'there';
+  const firstName = user?.full_name?.split(' ')[0] || '';
 
   return (
     <div className="employee-dashboard">
-      <div className="employee-dashboard__greeting">
-        <h1>Hi, {firstName} 👋</h1>
-        <p>{user?.factory_name || 'Your factory'}</p>
+
+      <p className="mgr-section-title" style={{ marginTop: 0 }}>פעולות ייצור</p>
+      <div className="production-actions">
+        <Link to="/intakes/new" className="prod-action">
+          <div className="prod-action__icon"><Plus size={22} /></div>
+          <div>
+            <p className="prod-action__title">קליטת חומר למחסן</p>
+          </div>
+        </Link>
+        <Link to="/batches?new=1" className="prod-action">
+          <div className="prod-action__icon"><Plus size={22} /></div>
+          <div>
+            <p className="prod-action__title">יצירת אצוות מוצר</p>
+          </div>
+        </Link>
+        <Link to="/shipments?new=1" className="prod-action">
+          <div className="prod-action__icon"><Plus size={22} /></div>
+          <div>
+            <p className="prod-action__title">יצירת משלוח ללקוח</p>
+          </div>
+        </Link>
       </div>
 
-      <Link to="/intakes/new" className="cta-btn">
-        <PlusCircle size={24} />
-        <span>New Intake</span>
-      </Link>
-
-      <div className="employee-dashboard__tiles">
-        <Link to="/intakes" className="tile">
-          <Package size={26} />
-          <span>My Intakes</span>
+      <div className="mgmt-grid">
+        <Link to="/settings" className="mgmt-tile">
+          <span className="mgmt-tile__label">הגדרות</span>
         </Link>
-        <div className="tile tile--disabled">
-          <Clock size={26} />
-          <span>Recent Activity</span>
-        </div>
       </div>
     </div>
   );

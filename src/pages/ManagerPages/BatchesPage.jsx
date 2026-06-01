@@ -28,6 +28,8 @@ const BatchesPage = () => {
   const dispatch = useDispatch();
   const { list: batches, loading, error, lastFetched } = useSelector((s) => s.batches);
   const { list: products } = useSelector((s) => s.products);
+  const { user } = useSelector((s) => s.auth);
+  const isManager = user?.role !== 'employee';
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [searchParams] = useSearchParams();
@@ -209,26 +211,32 @@ const BatchesPage = () => {
                   {b.is_active === false ? (
                     <span className="badge badge--warn">חסומה</span>
                   ) : b.status === 'in_progress' ? (
-                    <button className="status-toggle status-toggle--on" onClick={() => handleComplete(b)} title="לחץ לסיים אצווה" aria-pressed>
-                      <span className="status-toggle__track"><span className="status-toggle__thumb" /></span>
-                      <span className="status-toggle__label">פעיל</span>
-                    </button>
+                    isManager ? (
+                      <button className="status-toggle status-toggle--on" onClick={() => handleComplete(b)} title="לחץ לסיים אצווה" aria-pressed>
+                        <span className="status-toggle__track"><span className="status-toggle__thumb" /></span>
+                        <span className="status-toggle__label">פעיל</span>
+                      </button>
+                    ) : (
+                      <span className="badge badge--green">פעיל</span>
+                    )
                   ) : (
                     <span className={`badge ${STATUS_BADGE[b.status] || 'badge--neutral'}`}>
                       {STATUS_HE[b.status] || b.status}
                     </span>
                   )}
-                  {b.is_active === false ? (
-                    <RowActionsMenu items={[
-                      { label: 'שחרר חסימה', icon: <LockOpen size={14} />, onClick: () => handleUnblock(b) },
-                    ]} />
-                  ) : b.status === 'in_progress' ? (
-                    <RowActionsMenu items={[
-                      { label: 'חסום אצווה', icon: <Lock size={14} />, onClick: () => handleBlock(b), danger: true },
-                      { label: 'פסול אצווה', icon: <XOctagon size={14} />, onClick: () => handleFail(b), danger: true },
-                      { label: 'בטל אצווה', icon: <XCircle size={14} />, onClick: () => handleCancel(b), danger: true },
-                    ]} />
-                  ) : null}
+                  {isManager && (
+                    b.is_active === false ? (
+                      <RowActionsMenu items={[
+                        { label: 'שחרר חסימה', icon: <LockOpen size={14} />, onClick: () => handleUnblock(b) },
+                      ]} />
+                    ) : b.status === 'in_progress' ? (
+                      <RowActionsMenu items={[
+                        { label: 'חסום אצווה', icon: <Lock size={14} />, onClick: () => handleBlock(b), danger: true },
+                        { label: 'פסול אצווה', icon: <XOctagon size={14} />, onClick: () => handleFail(b), danger: true },
+                        { label: 'בטל אצווה', icon: <XCircle size={14} />, onClick: () => handleCancel(b), danger: true },
+                      ]} />
+                    ) : null
+                  )}
                 </div>
               </div>
               <div className="mobile-card__row">

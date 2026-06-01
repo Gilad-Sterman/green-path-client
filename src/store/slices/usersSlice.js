@@ -76,7 +76,7 @@ export const deleteUserThunk = createAsyncThunk(
 
 const patchUser = (list, updated) => {
   const idx = list.findIndex((u) => u.id === updated.id);
-  if (idx !== -1) list[idx] = updated;
+  if (idx !== -1) list[idx] = { ...list[idx], ...updated };
 };
 
 const usersSlice = createSlice({

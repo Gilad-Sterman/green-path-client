@@ -1245,3 +1245,31 @@
     &:last-child { border-bottom: none; }
   }
 }
+
+// ── Settings danger zone ───────────────────────────────────────────────────────
+.settings-danger-zone {
+  @include flex-between;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-4 $space-5;
+  border: 1px solid rgba($color-error, 0.3);
+  border-radius: $radius-md;
+  background: rgba($color-error, 0.03);
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.settings-danger-zone__title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semi;
+  color: $color-text;
+  margin-bottom: 2px;
+}
+
+.settings-danger-zone__desc {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+}

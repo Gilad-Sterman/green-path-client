@@ -22,6 +22,7 @@ const ROLE_LABEL = {
 const AdminUsersPage = () => {
   const dispatch = useDispatch();
   const { list: users, loading: usersLoading, lastFetched } = useSelector((s) => s.users);
+  const { user: currentUser } = useSelector((s) => s.auth);
   const refreshedLabel = useRelativeTime(lastFetched);
   const { list: factories, loading: factoriesLoading } = useSelector((s) => s.factories);
 
@@ -46,6 +47,7 @@ const AdminUsersPage = () => {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter((u) => {
+      if (u.id === currentUser?.id) return false;
       if (q && !u.full_name.toLowerCase().includes(q) && !u.phone_number.includes(q)) return false;
       if (roleFilter && u.role !== roleFilter) return false;
       if (factFilter && u.factory_id !== factFilter) return false;

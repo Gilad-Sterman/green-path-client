@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { sendOtp, verifyOtp, refreshToken, logout } from '../../api/auth';
-import { getMe } from '../../api/users';
+import { getMe, deactivateSelf } from '../../api/users';
 
 // ─── Thunks ───────────────────────────────────────────────────────────────────
 export const sendOtpThunk = createAsyncThunk(
@@ -38,6 +38,17 @@ export const checkAuthStatus = createAsyncThunk(
       return { accessToken, user: meRes.data.data.user };
     } catch {
       return rejectWithValue('Not authenticated');
+    }
+  }
+);
+
+export const deactivateSelfThunk = createAsyncThunk(
+  'auth/deactivateSelf',
+  async (_, { rejectWithValue }) => {
+    try {
+      await deactivateSelf();
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error?.message || 'Failed to deactivate account');
     }
   }
 );
@@ -91,6 +102,12 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
       })
       .addCase(logoutThunk.fulfilled, (state) => {
+        state.user = null;
+        state.accessToken = null;
+        state.isAuthenticated = false;
+        state.isLoading = false;
+      })
+      .addCase(deactivateSelfThunk.fulfilled, (state) => {
         state.user = null;
         state.accessToken = null;
         state.isAuthenticated = false;
