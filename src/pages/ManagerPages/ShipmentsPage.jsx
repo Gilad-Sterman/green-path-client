@@ -6,11 +6,13 @@ import {
   CheckCircle2, XCircle, Send,
 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
+import DocumentUploader from '../../components/DocumentUploader';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import {
   fetchShipments, createShipmentThunk, updateShipmentStatusThunk, clearShipmentsError,
 } from '../../store/slices/shipmentsSlice';
+import { fetchFlagsSummary, invalidateFlags } from '../../store/slices/flagsSlice';
 import { invalidateCredits } from '../../store/slices/creditsSlice';
 import { fetchCustomers } from '../../store/slices/customersSlice';
 import { fetchBatches } from '../../store/slices/batchesSlice';
@@ -56,6 +58,7 @@ const ShipmentsPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
+  const [shipmentDocId, setShipmentDocId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [formError, setFormError] = useState('');
@@ -107,6 +110,7 @@ const ShipmentsPage = () => {
       shipment_date: form.shipment_date,
       destination_address: form.destination_address.trim(),
       notes: form.notes || undefined,
+      document_ids: shipmentDocId ? [shipmentDocId] : [],
       items: validItems.map((it) => ({
         batch_id: it.batch_id,
         weight_kg: parseFloat(it.weight_kg),
@@ -121,6 +125,8 @@ const ShipmentsPage = () => {
       setToast('משלוח נוצר — זיכויים נוצרו אוטומטית.');
       dispatch(invalidateCredits());
       dispatch(fetchBatches({ force: true }));
+      dispatch(fetchFlagsSummary());
+      dispatch(invalidateFlags());
       handleClose();
     } else {
       setFormError(result.payload || 'יצירת המשלוח נכשלה.');
@@ -174,6 +180,7 @@ const ShipmentsPage = () => {
     setShowForm(false);
     setForm(EMPTY_FORM);
     setItems([{ ...EMPTY_ITEM }]);
+    setShipmentDocId(null);
     setFormError('');
     dispatch(clearShipmentsError());
   };
@@ -257,6 +264,16 @@ const ShipmentsPage = () => {
             <div className="form-field">
               <label>הערות</label>
               <input name="notes" value={form.notes} onChange={handleChange} placeholder="הערות אופציונליות…" />
+            </div>
+
+            <div className="form-field">
+              <label>מסמך משלוח <span className="form-hint">(אופציונלי — חשבונית / תעודת משלוח)</span></label>
+              <DocumentUploader
+                documentType="invoice_out"
+                label="צרף מסמך"
+                onDocumentReady={(id) => setShipmentDocId(id)}
+                disabled={saving}
+              />
             </div>
 
             <div className="components-section">

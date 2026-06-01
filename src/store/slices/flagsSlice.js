@@ -63,7 +63,8 @@ const flagsSlice = createSlice({
   name: 'flags',
   initialState: { list: [], summary: null, loading: false, error: null, lastFetched: null },
   reducers: {
-    clearFlagsError: (state) => { state.error = null; },
+    clearFlagsError:  (state) => { state.error = null; },
+    invalidateFlags:  ()      => { cache.invalidate(CACHE_KEYS.FLAGS); },
   },
   extraReducers: (builder) => {
     const updateInList = (state, action) => {
@@ -85,5 +86,5 @@ const flagsSlice = createSlice({
   },
 });
 
-export const { clearFlagsError } = flagsSlice.actions;
+export const { clearFlagsError, invalidateFlags } = flagsSlice.actions;
 export default flagsSlice.reducer;

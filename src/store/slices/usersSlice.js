@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getUsers, createUser, deactivateUser, reactivateUser } from '../../api/users';
+import { getUsers, createUser, deactivateUser, reactivateUser, deleteUser } from '../../api/users';
 import { cache, CACHE_KEYS } from '../cache';
 
 export const fetchUsers = createAsyncThunk(
@@ -62,6 +62,18 @@ export const reactivateUserThunk = createAsyncThunk(
   }
 );
 
+export const deleteUserThunk = createAsyncThunk(
+  'users/delete',
+  async (id, { rejectWithValue }) => {
+    try {
+      await deleteUser(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error?.message || 'Failed to delete user');
+    }
+  }
+);
+
 const patchUser = (list, updated) => {
   const idx = list.findIndex((u) => u.id === updated.id);
   if (idx !== -1) list[idx] = updated;
@@ -94,6 +106,10 @@ const usersSlice = createSlice({
       })
       .addCase(reactivateUserThunk.fulfilled, (state, action) => {
         patchUser(state.list, action.payload);
+        cache.invalidate(CACHE_KEYS.FACTORIES);
+      })
+      .addCase(deleteUserThunk.fulfilled, (state, action) => {
+        state.list = state.list.filter((u) => u.id !== action.payload);
         cache.invalidate(CACHE_KEYS.FACTORIES);
       });
   },

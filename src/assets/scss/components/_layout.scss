@@ -268,3 +268,67 @@
   &--neutral { background: #f3f4f6;    color: #6b7280; }
   &--error   { background: #fef2f2;    color: $color-error; }
 }
+
+// ── Document Uploader ──────────────────────────────────────────────────────────
+.doc-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  &__loading {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
+  &__attached {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    background: rgba($color-primary, 0.07);
+    border: 1px solid rgba($color-primary, 0.2);
+    border-radius: $radius-sm;
+    padding: $space-2 $space-3;
+    font-size: $font-size-sm;
+  }
+
+  &__ok-icon {
+    color: $color-success;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    color: $color-text;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+  }
+
+  &__remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $color-text-muted;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    &:hover { color: $color-error; }
+  }
+
+  &__hint {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: $font-size-xs;
+    color: $color-error;
+  }
+}

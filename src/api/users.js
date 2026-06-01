@@ -7,3 +7,4 @@ export const createUser   = (data)      => client.post('/users', data);
 export const updateUser   = (id, data)  => client.patch(`/users/${id}`, data);
 export const deactivateUser  = (id)      => client.patch(`/users/${id}/deactivate`);
 export const reactivateUser  = (id)      => client.patch(`/users/${id}/reactivate`);
+export const deleteUser      = (id)      => client.delete(`/users/${id}`);

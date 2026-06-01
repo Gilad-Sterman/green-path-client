@@ -4,7 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, CheckCircle2, Info, ScanLine, Loader2, X } from 'lucide-react';
 import { createIntakeThunk, updateIntakeThunk, clearIntakesError } from '../../store/slices/intakesSlice';
 import { fetchSuppliers } from '../../store/slices/suppliersSlice';
-import { analyzeDocument } from '../../api/documents';
+import { fetchFlagsSummary, invalidateFlags } from '../../store/slices/flagsSlice';
+import { analyzeDocument, uploadDocument } from '../../api/documents';
 
 const MATERIAL_TYPES   = ['plastic', 'paper', 'metal', 'glass', 'textile', 'rubber', 'mixed', 'other'];
 
@@ -71,6 +72,7 @@ const NewIntakePage = () => {
   const editIntake  = location.state?.intake || null;
   const editingId   = editIntake?.id || null;
   const { list: suppliers } = useSelector((s) => s.suppliers);
+  const { user } = useSelector((s) => s.auth);
   const fileInputRef = useRef(null);
 
   const [form,       setForm]       = useState(EMPTY_FORM);
@@ -82,6 +84,7 @@ const NewIntakePage = () => {
   const [ocrFields,       setOcrFields]       = useState(null);
   const [ocrSupplierHint, setOcrSupplierHint] = useState('');
   const [ocrExtras,       setOcrExtras]       = useState(null);
+  const [docId,           setDocId]           = useState(null);
 
   useEffect(() => {
     dispatch(fetchSuppliers());
@@ -180,6 +183,11 @@ const NewIntakePage = () => {
 
       setOcrFields(Object.keys(filled).length > 0 ? filled : null);
       if (Object.keys(filled).length === 0) setOcrError('המסמך נותח אך לא ניתן לחלץ שדות.');
+
+      try {
+        const uploadRes = await uploadDocument(file, { document_type: 'delivery_note' });
+        setDocId(uploadRes.data?.data?.document?.id || null);
+      } catch (_) { /* upload failure is non-blocking */ }
     } catch (err) {
       setOcrError(err?.response?.data?.message || 'ה-OCR נכשל. יש למלא את הטופס ידנית.');
     } finally {
@@ -213,8 +221,9 @@ const NewIntakePage = () => {
       material_status:        form.material_status,
       net_weight_kg:          parseFloat(form.net_weight_kg),
       eligible_input_percent: parseFloat(form.eligible_input_percent),
-      data_entry_profile:     editingId ? undefined : 'manual_capture',
+      data_entry_profile:     editingId ? undefined : (docId ? 'camera_upload' : 'manual_capture'),
       notes:                  form.notes || undefined,
+      document_ids:           docId ? [docId] : [],
     };
 
     setSaving(true);
@@ -231,6 +240,10 @@ const NewIntakePage = () => {
       if (editingId) {
         navigate('/intakes', { replace: true });
       } else {
+        if (user?.role === 'manager' || user?.role === 'internal_admin') {
+          dispatch(fetchFlagsSummary());
+          dispatch(invalidateFlags());
+        }
         setSuccess(true);
       }
     } else {
@@ -305,7 +318,7 @@ const NewIntakePage = () => {
           <div className="ocr-upload-banner__done">
             <CheckCircle2 size={16} />
             <span>שדות מולאו אוטומטית מהמסמך</span>
-            <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setForm(EMPTY_FORM); }}>
+            <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setDocId(null); setForm(EMPTY_FORM); }}>
               <X size={14} /> נקה
             </button>
           </div>

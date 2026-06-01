@@ -23,9 +23,9 @@ const MGMT_TILES = [
   { to: '/shipments', icon: Truck, label: 'משלוחים' },
   { to: '/intakes', icon: Package, label: 'ניהול כניסות' },
   { to: '/suppliers', icon: Building2, label: 'ניהול ספקים ולקוחות' },
-  { to: '/credits', icon: Award, label: 'קרדיטים' },
-  { to: '/reports', icon: BarChart3, label: 'דו"ח' },
   { to: '/team', icon: Users2, label: 'צוות' },
+  // { to: '/credits', icon: Award, label: 'קרדיטים' },
+  // { to: '/reports', icon: BarChart3, label: 'דו"ח' },
   { to: '/flags', icon: Flag, label: 'דגלים' },
 ];
 

@@ -230,6 +230,15 @@
     &:hover { color: $color-text; background: $color-bg; border-color: $color-border; }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
   }
+  &--sm {
+    padding: $space-1 $space-3;
+    font-size: $font-size-xs;
+  }
+  &--danger {
+    color: $color-error;
+    border-color: transparent;
+    &:hover { background: rgba($color-error, 0.07); border-color: rgba($color-error, 0.25); }
+  }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 

@@ -1,14 +1,15 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Layers, Plus, X, AlertCircle, RefreshCw, XCircle, ChevronDown, ChevronUp, Trash2, Lock, LockOpen, XOctagon } from 'lucide-react';
+import { Layers, Plus, AlertCircle, RefreshCw, XCircle, ChevronDown, ChevronUp, Lock, LockOpen, XOctagon } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
-import { fetchBatches, createBatchThunk, completeBatchThunk, cancelBatchThunk, blockBatchThunk, unblockBatchThunk, failBatchThunk, clearBatchesError } from '../../store/slices/batchesSlice';
+import { fetchBatches, completeBatchThunk, cancelBatchThunk, blockBatchThunk, unblockBatchThunk, failBatchThunk } from '../../store/slices/batchesSlice';
 import { fetchProducts } from '../../store/slices/productsSlice';
 import { fetchIntakes } from '../../store/slices/intakesSlice';
 import { getBatch } from '../../api/batches';
+import BatchForm from './BatchForm';
 
 const STATUS_BADGE = { in_progress: 'badge--warn', completed: 'badge--neutral', cancelled: 'badge--neutral', failed: 'badge--warn' };
 const STATUS_HE = { in_progress: 'פעיל', completed: 'לא פעיל', cancelled: 'בוטל', failed: 'נפסלה' };
@@ -23,23 +24,15 @@ const fmtKg = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maxi
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const shortId = (id) => id?.slice(0, 8).toUpperCase();
 
-const EMPTY_FORM = { product_id: '', output_weight_kg: '', notes: '' };
-const EMPTY_COMP = { intake_id: '', weight_kg: '' };
-
 const BatchesPage = () => {
   const dispatch = useDispatch();
   const { list: batches, loading, error, lastFetched } = useSelector((s) => s.batches);
   const { list: products } = useSelector((s) => s.products);
-  const { list: intakes } = useSelector((s) => s.intakes);
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [searchParams] = useSearchParams();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [components, setComponents] = useState([{ ...EMPTY_COMP }]);
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
-  const [formError, setFormError] = useState('');
   const [filter, setFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
   const [detailData, setDetailData] = useState({});
@@ -49,67 +42,11 @@ const BatchesPage = () => {
   useEffect(() => {
     dispatch(fetchBatches({ force: false }));
     dispatch(fetchProducts());
-    dispatch(fetchIntakes({ force: false }));
   }, [dispatch]);
 
   useEffect(() => {
     if (searchParams.get('new') === '1') setShowForm(true);
   }, [searchParams]);
-
-  const handleChange = (e) => {
-    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
-    setFormError('');
-  };
-
-  const addComponent = () => setComponents((p) => [...p, { ...EMPTY_COMP }]);
-  const removeComponent = (idx) => setComponents((p) => p.filter((_, i) => i !== idx));
-  const updateComponent = (idx, field, value) => {
-    setComponents((p) => p.map((c, i) => (i === idx ? { ...c, [field]: value } : c)));
-    setFormError('');
-  };
-
-  const totalAllocated = components.reduce((sum, c) => sum + (parseFloat(c.weight_kg) || 0), 0);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.product_id) { setFormError('יש לבחור מוצר.'); return; }
-    if (!form.output_weight_kg) { setFormError('יש להזין משקל אצווה כולל.'); return; }
-
-    const validComps = components.filter((c) => c.intake_id && c.weight_kg);
-    if (validComps.length === 0) { setFormError('יש להגדיר לפחות מקור קליטה אחד.'); return; }
-
-    const hasIncomplete = components.some((c) => (c.intake_id && !c.weight_kg) || (!c.intake_id && c.weight_kg));
-    if (hasIncomplete) { setFormError('לכל מקור קליטה יש להזין גם קליטה וגם משקל.'); return; }
-
-    const sumComps = validComps.reduce((s, c) => s + parseFloat(c.weight_kg), 0);
-    const target = parseFloat(form.output_weight_kg);
-    if (Math.abs(sumComps - target) > 0.01) {
-      setFormError(`סך משקלי המקורות (${sumComps.toFixed(2)}) חייב להיות שווה למשקל האצווה הכולל (${target.toFixed(2)}).`);
-      return;
-    }
-
-    const payload = {
-      product_id: form.product_id,
-      output_weight_kg: parseFloat(form.output_weight_kg),
-      notes: form.notes || undefined,
-      components: validComps.map((c) => ({
-        intake_id: c.intake_id,
-        weight_kg: parseFloat(c.weight_kg),
-      })),
-    };
-
-    setSaving(true);
-    const result = await dispatch(createBatchThunk(payload));
-    setSaving(false);
-
-    if (createBatchThunk.fulfilled.match(result)) {
-      setToast('אצווה נוצרה בהצלחה.');
-      handleClose();
-      dispatch(fetchIntakes({ force: true }));
-    } else {
-      setFormError(result.payload || 'יצירת האצווה נכשלה.');
-    }
-  };
 
   const handleComplete = async (batch) => {
     const result = await dispatch(completeBatchThunk(batch.id));
@@ -189,7 +126,7 @@ const BatchesPage = () => {
     });
   };
 
-  const toggleExpand = useCallback(async (batchId) => {
+  const toggleExpand = async (batchId) => {
     if (expandedId === batchId) { setExpandedId(null); return; }
     setExpandedId(batchId);
     if (detailData[batchId]) return;
@@ -199,20 +136,15 @@ const BatchesPage = () => {
       setDetailData((p) => ({ ...p, [batchId]: data.data.batch }));
     } catch (_) { }
     setDetailLoading(false);
-  }, [expandedId, detailData]);
+  };
 
-  const handleClose = () => {
+  const handleBatchCreated = () => {
+    setToast('אצווה נוצרה בהצלחה.');
     setShowForm(false);
-    setForm(EMPTY_FORM);
-    setComponents([{ ...EMPTY_COMP }]);
-    setFormError('');
-    dispatch(clearBatchesError());
+    dispatch(fetchIntakes({ force: true }));
   };
 
   const visible = batches.filter((b) => filter === 'all' || b.status === filter);
-  const activeProducts = products.filter((p) => p.is_active);
-
-  const usedIntakeIds = components.map((c) => c.intake_id).filter(Boolean);
 
   return (
     <div className="manager-page">
@@ -237,114 +169,11 @@ const BatchesPage = () => {
       {error && <div className="alert alert--error"><AlertCircle size={16} />{error}</div>}
 
       {showForm && (
-        <div className="form-card">
-          <div className="form-card__header">
-            <h3>יצירת אצווה חדשה</h3>
-            <button className="icon-btn" onClick={handleClose}><X size={18} /></button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="manager-form">
-            {formError && <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>}
-
-            <div className="form-field">
-              <label>תוצ"ג יעד <span className="required">*</span></label>
-              <select name="product_id" value={form.product_id} onChange={handleChange}>
-                <option value="">— בחר מוצר —</option>
-                {activeProducts.map((p) => (
-                  <option key={p.id} value={p.id}>{`${p.name} (${p.sku})`}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-field">
-              <label>משקל אצווה כולל (ק"ג) <span className="required">*</span></label>
-              <input
-                name="output_weight_kg" type="number" step="0.01" min="0.01"
-                value={form.output_weight_kg} onChange={handleChange}
-                placeholder="לדוגמה: 480.00"
-              />
-            </div>
-
-            <div className="form-field">
-              <label>הערות</label>
-              <input name="notes" value={form.notes} onChange={handleChange} placeholder="הערות נוספות לאצווה…" />
-            </div>
-
-            <div className="components-section">
-              <div className="components-section__header">
-                <label>מקורות קליטה <span className="required">*</span></label>
-                <button type="button" className="btn-ghost btn-ghost--sm" onClick={addComponent}>
-                  <Plus size={13} /> הוסף קליטה
-                </button>
-              </div>
-
-              {components.map((comp, idx) => {
-                const selectedIntake = intakes.find((i) => i.id === comp.intake_id);
-                const availableIntakes = intakes.filter(
-                  (i) => i.eligible_weight_kg > 0 && (!usedIntakeIds.includes(i.id) || i.id === comp.intake_id)
-                );
-
-                return (
-                  <div key={idx} className="component-row">
-                    <div className="component-row__select">
-                      <select
-                        value={comp.intake_id}
-                        onChange={(e) => updateComponent(idx, 'intake_id', e.target.value)}
-                      >
-                        <option value="">— בחר קליטה —</option>
-                        {availableIntakes.map((i) => (
-                          <option key={i.id} value={i.id}>
-                            {i.delivery_note_number} · {i.supplier_name} · {MATERIAL_TYPE_HE[i.material_type] || i.material_type} · {fmtKg(i.eligible_weight_kg)} זמין
-                          </option>
-                        ))}
-                      </select>
-                      {selectedIntake && (
-                        <span className="field-hint">
-                          זמין לשיוך: <strong>{fmtKg(selectedIntake.eligible_weight_kg)}</strong>
-                        </span>
-                      )}
-                    </div>
-                    <div className="component-row__weight">
-                      <input
-                        type="number" step="0.01" min="0.01"
-                        placeholder={'משקל ק"ג'}
-                        value={comp.weight_kg}
-                        onChange={(e) => updateComponent(idx, 'weight_kg', e.target.value)}
-                      />
-                    </div>
-                    {components.length > 1 && (
-                      <button type="button" className="icon-btn icon-btn--danger" onClick={() => removeComponent(idx)} title="הסר">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-
-              {totalAllocated > 0 && (
-                <div className="allocation-summary">
-                  <span>סה"כ מוקצה: <strong>{fmtKg(totalAllocated)}</strong></span>
-                  {form.output_weight_kg && (() => {
-                    const target = parseFloat(form.output_weight_kg);
-                    const diff = Math.abs(totalAllocated - target);
-                    return (
-                      <span className={diff > 0.01 ? 'allocation-summary__warn' : 'allocation-summary__ok'} style={{ marginRight: '12px' }}>
-                        יעד: <strong>{fmtKg(target)}</strong>
-                        {diff > 0.01 && <span> · הפרש: {fmtKg(diff)}</span>}
-                      </span>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
-            <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>ביטול</button>
-              <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'יוצר…' : 'צור אצווה'}
-              </button>
-            </div>
-          </form>
-        </div>
+        <BatchForm
+          products={products}
+          onClose={() => setShowForm(false)}
+          onSuccess={handleBatchCreated}
+        />
       )}
 
       <div className="filter-tabs">
@@ -374,7 +203,7 @@ const BatchesPage = () => {
               <div className="mobile-card__header">
                 <div>
                   <span className="mobile-card__title">{b.product_name}</span>
-                  <code className="mobile-card__sku">{shortId(b.id)} · {b.product_sku}</code>
+                  <code className="mobile-card__sku">{b.batch_code || shortId(b.id)} · {b.product_sku}</code>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {b.is_active === false ? (
@@ -415,8 +244,8 @@ const BatchesPage = () => {
                 <strong>{fmtKg(b.remaining_weight_kg)}</strong>
               </div>
               <div className="mobile-card__row">
-                <span className="mobile-card__label">תאריך:</span>
-                <span>{fmtDate(b.created_at)}</span>
+                <span className="mobile-card__label">תאריך אצווה:</span>
+                <span>{fmtDate(b.batch_date || b.created_at)}</span>
               </div>
               <button
                 className="btn-ghost btn-ghost--sm"
@@ -424,7 +253,7 @@ const BatchesPage = () => {
                 onClick={() => toggleExpand(b.id)}
               >
                 {expandedId === b.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                {expandedId === b.id ? 'סגור פירוט' : 'מקורות קליטה'}
+                {expandedId === b.id ? 'סגור פירוט' : 'מקורות'}
               </button>
               {expandedId === b.id && (
                 <div className="batch-card-detail">
@@ -437,8 +266,18 @@ const BatchesPage = () => {
                       {detailData[b.id].components?.map((c) => (
                         <div key={c.id} className="batch-card-detail__row">
                           <div>
-                            <code style={{ fontSize: '11px' }}>{c.delivery_note_number}</code>
-                            <span className="tag" style={{ marginRight: '6px' }}>{MATERIAL_TYPE_HE[c.material_type] || c.material_type}</span>
+                            {c.source_type === 'intake' ? (
+                              <>
+                                <code style={{ fontSize: '11px' }}>{c.delivery_note_number}</code>
+                                <span className="tag" style={{ marginRight: '6px' }}>{MATERIAL_TYPE_HE[c.material_type] || c.material_type}</span>
+                              </>
+                            ) : (
+                              <>
+                                <code style={{ fontSize: '11px' }}>{c.source_batch_code}</code>
+                                <span className="tag" style={{ marginRight: '6px' }}>אצווה</span>
+                                {c.source_product_name && <span style={{ fontSize: '12px' }}>{c.source_product_name}</span>}
+                              </>
+                            )}
                           </div>
                           <strong>{fmtKg(c.weight_kg)}</strong>
                         </div>

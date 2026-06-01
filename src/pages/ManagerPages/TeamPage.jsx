@@ -1,124 +1,128 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Users, Plus, X, AlertCircle, RefreshCw, UserCheck, UserX } from 'lucide-react';
-import RowActionsMenu from '../../components/RowActionsMenu';
+import { Users, Plus, X, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import {
-  fetchUsers, createUserThunk, deactivateUserThunk, reactivateUserThunk, clearUsersError,
+  fetchUsers, createUserThunk, deactivateUserThunk, reactivateUserThunk,
+  deleteUserThunk, clearUsersError,
 } from '../../store/slices/usersSlice';
 
 const EMPTY_FORM = { full_name: '', phone_number: '' };
 
+const ROLE_HE    = { employee: 'עובד', manager: 'מנהל', internal_admin: 'אדמין' };
+const ROLE_BADGE = { employee: 'badge--neutral', manager: 'badge--blue', internal_admin: 'badge--warn' };
+
+const STATUS_FILTERS = ['all', 'active', 'inactive'];
+const STATUS_LABELS  = { all: 'הכל', active: 'פעיל', inactive: 'לא פעיל' };
+
+const normalizePhone = (raw) => {
+  const s = raw.replace(/[\s\-().]/g, '');
+  if (/^\+972\d{9}$/.test(s))  return s;            // +972XXXXXXXXX
+  if (/^972\d{9}$/.test(s))    return '+' + s;       // 972XXXXXXXXX
+  if (/^0\d{9}$/.test(s))      return '+972' + s.slice(1); // 05XXXXXXXX
+  if (/^\d{9}$/.test(s))       return '+972' + s;    // 5XXXXXXXX
+  return null;
+};
+
 const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  d ? new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
 const TeamPage = () => {
   const dispatch = useDispatch();
   const { list: users, loading, error, lastFetched } = useSelector((s) => s.users);
   const refreshedLabel = useRelativeTime(lastFetched);
 
-  const [showForm,   setShowForm]   = useState(false);
-  const [form,       setForm]       = useState(EMPTY_FORM);
-  const [saving,     setSaving]     = useState(false);
-  const [formError,  setFormError]  = useState('');
-  const [toast,      setToast]      = useState('');
-  const [statusFilter, setStatusFilter] = useState('active');
-  const [roleFilter,   setRoleFilter]   = useState('');
+  const [showForm,     setShowForm]     = useState(false);
+  const [form,         setForm]         = useState(EMPTY_FORM);
+  const [saving,       setSaving]       = useState(false);
+  const [formError,    setFormError]    = useState('');
+  const [toast,        setToast]        = useState('');
+  const [statusFilter,  setStatusFilter]  = useState('all');
+  const [roleFilter,    setRoleFilter]    = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     dispatch(fetchUsers({ force: false }));
   }, [dispatch]);
 
-  const handleChange = (e) => {
-    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
-    setFormError('');
-  };
+  const handleChange = (e) => { setForm((p) => ({ ...p, [e.target.name]: e.target.value })); setFormError(''); };
 
   const handleClose = () => {
-    setShowForm(false);
-    setForm(EMPTY_FORM);
-    setFormError('');
+    setShowForm(false); setForm(EMPTY_FORM); setFormError('');
     dispatch(clearUsersError());
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.full_name.trim())    { setFormError('Full name is required.'); return; }
-    if (!form.phone_number.trim()) { setFormError('Phone number is required.'); return; }
-    if (!/^\+[1-9]\d{6,14}$/.test(form.phone_number.trim())) {
-      setFormError('Phone must be in E.164 format, e.g. +972501234567');
+    if (!form.full_name.trim())    { setFormError('יש להזין שם מלא.'); return; }
+    if (!form.phone_number.trim()) { setFormError('יש להזין מספר טלפון.'); return; }
+    const normalized = normalizePhone(form.phone_number.trim());
+    if (!normalized) {
+      setFormError('מספר הטלפון אינו תקין. לדוגמה: 0501234567 או 501234567 או +972501234567');
       return;
     }
-
     setSaving(true);
     const result = await dispatch(createUserThunk({
-      full_name:    form.full_name.trim(),
-      phone_number: form.phone_number.trim(),
-      role:         'employee',
+      full_name: form.full_name.trim(), phone_number: normalized, role: 'employee',
     }));
     setSaving(false);
-
     if (createUserThunk.fulfilled.match(result)) {
-      setToast(`${form.full_name.trim()} added to your team.`);
+      setToast(`${form.full_name.trim()} נוסף/ה לצוות.`);
       handleClose();
     } else {
-      setFormError(result.payload || 'Failed to add employee.');
+      setFormError(result.payload || 'שגיאה בהוספת עובד.');
     }
   };
 
-  const handleDeactivate = async (user) => {
-    const result = await dispatch(deactivateUserThunk(user.id));
-    if (deactivateUserThunk.fulfilled.match(result)) {
-      setToast(`${user.full_name} deactivated.`);
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    const result = await dispatch(deleteUserThunk(confirmDelete.id));
+    if (deleteUserThunk.fulfilled.match(result)) {
+      setToast(`${confirmDelete.name} נמחק/ה.`);
     } else {
-      setToast(result.payload || 'Failed to deactivate user.');
+      setToast(result.payload || 'שגיאה במחיקה.');
     }
+    setConfirmDelete(null);
   };
 
-  const handleReactivate = async (user) => {
-    const result = await dispatch(reactivateUserThunk(user.id));
-    if (reactivateUserThunk.fulfilled.match(result)) {
-      setToast(`${user.full_name} reactivated.`);
-    } else {
-      setToast(result.payload || 'Failed to reactivate user.');
+  const handleToggleActive = async (user) => {
+    const thunk = user.is_active ? deactivateUserThunk : reactivateUserThunk;
+    const result = await dispatch(thunk(user.id));
+    if (thunk.fulfilled.match(result)) {
+      setToast(user.is_active ? `${user.full_name} הושבת/ה.` : `${user.full_name} הופעל/ה.`);
     }
   };
 
   const visible = users.filter((u) => {
-    if (statusFilter === 'active'   && !u.is_active)  return false;
-    if (statusFilter === 'inactive' && u.is_active)   return false;
-    if (roleFilter && u.role !== roleFilter)           return false;
+    if (statusFilter === 'active'   && !u.is_active) return false;
+    if (statusFilter === 'inactive' && u.is_active)  return false;
+    if (roleFilter && u.role !== roleFilter)          return false;
     return true;
   });
-
-  const activeCount   = users.filter((u) => u.is_active).length;
-  const inactiveCount = users.filter((u) => !u.is_active).length;
 
   return (
     <div className="manager-page">
       <div className="manager-page__header">
         <div>
-          <h1>Team</h1>
-          <p className="page-subtitle">Manage employees at your factory</p>
+          <h1>ניהול צוות</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="refresh-group">
-            {refreshedLabel && <span className="last-refreshed">{refreshedLabel}</span>}
-            <button
-              className="btn-ghost btn-ghost--icon"
-              onClick={() => dispatch(fetchUsers({ force: true }))}
-              disabled={loading}
-              title="Refresh"
-            >
-              <RefreshCw size={15} className={loading ? 'spin' : ''} />
-            </button>
-          </div>
-          <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
-            <Plus size={16} /> Add Employee
+        <div className="refresh-group">
+          {refreshedLabel && <span className="last-refreshed">{refreshedLabel}</span>}
+          <button
+            className="btn-ghost btn-ghost--icon"
+            onClick={() => dispatch(fetchUsers({ force: true }))}
+            disabled={loading}
+            title="רענן"
+          >
+            <RefreshCw size={15} className={loading ? 'spin' : ''} />
           </button>
         </div>
       </div>
+
+      <button className="btn-primary new-team-btn" onClick={() => setShowForm(true)}>
+        <Plus size={16} /> הוספת עובד
+      </button>
 
       <Toast message={toast} onClose={() => setToast('')} />
       {error && <div className="alert alert--error"><AlertCircle size={16} />{error}</div>}
@@ -126,52 +130,31 @@ const TeamPage = () => {
       {showForm && (
         <div className="form-card">
           <div className="form-card__header">
-            <h3>Add New Employee</h3>
+            <h3>הוספת עובד חדש</h3>
             <button className="icon-btn" onClick={handleClose}><X size={18} /></button>
           </div>
-
           <form onSubmit={handleSubmit} className="manager-form">
-            {formError && (
-              <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>
-            )}
+            {formError && <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>}
 
-            <div className="form-row">
-              <div className="form-field">
-                <label>Full name <span className="required">*</span></label>
-                <input
-                  name="full_name"
-                  value={form.full_name}
-                  onChange={handleChange}
-                  placeholder="e.g. David Cohen"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="form-field">
-                <label>Phone number <span className="required">*</span></label>
-                <input
-                  name="phone_number"
-                  value={form.phone_number}
-                  onChange={handleChange}
-                  placeholder="+972501234567"
-                  autoComplete="off"
-                  inputMode="tel"
-                />
-                <span className="field-hint">E.164 format — include country code</span>
-              </div>
+            <div className="form-field">
+              <label>שם מלא <span className="required">*</span></label>
+              <input name="full_name" value={form.full_name} onChange={handleChange} placeholder="לדוגמה: דוד כהן" autoComplete="off" />
             </div>
-
+            <div className="form-field">
+              <label>מספר טלפון <span className="required">*</span></label>
+              <input name="phone_number" value={form.phone_number} onChange={handleChange} placeholder="0501234567" autoComplete="off" inputMode="tel" />
+              <span className="field-hint">ניתן להזין: 05… / 5… / 972… / +972…</span>
+            </div>
             <div className="form-field" style={{ maxWidth: '200px' }}>
-              <label>Role</label>
-              <input value="Employee" disabled style={{ background: '#f5f5f5', color: '#888' }} />
-              <span className="field-hint">Managers can only add employees</span>
+              <label>תפקיד</label>
+              <input value="עובד" disabled style={{ background: '#f5f5f5', color: '#888' }} />
+              <span className="field-hint">מנהלים יכולים להוסיף עובדים בלבד</span>
             </div>
 
             <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>
-                Cancel
-              </button>
+              <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>ביטול</button>
               <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? 'Adding…' : 'Add Employee'}
+                {saving ? 'מוסיף…' : 'הוסף עובד'}
               </button>
             </div>
           </form>
@@ -180,94 +163,84 @@ const TeamPage = () => {
 
       <div className="team-filters">
         <div className="filter-tabs">
-          {[
-            { key: 'all',      label: 'All',      count: users.length },
-            { key: 'active',   label: 'Active',   count: activeCount },
-            { key: 'inactive', label: 'Inactive', count: inactiveCount },
-          ].map(({ key, label, count }) => (
-            <button
-              key={key}
-              className={`filter-tab${statusFilter === key ? ' filter-tab--active' : ''}`}
-              onClick={() => setStatusFilter(key)}
-            >
-              {label}
-              <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>({count})</span>
-            </button>
-          ))}
+          {STATUS_FILTERS.map((f) => {
+            const count = f === 'all' ? users.length : f === 'active' ? users.filter((u) => u.is_active).length : users.filter((u) => !u.is_active).length;
+            return (
+              <button key={f} className={`filter-tab${statusFilter === f ? ' filter-tab--active' : ''}`} onClick={() => setStatusFilter(f)}>
+                {STATUS_LABELS[f]}
+                <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>({count})</span>
+              </button>
+            );
+          })}
         </div>
-        <select
-          className="filter-select"
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-        >
-          <option value="">All roles</option>
-          <option value="employee">Employee</option>
-          <option value="manager">Manager</option>
+        <select className="filter-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+          <option value="">כל התפקידים</option>
+          <option value="employee">עובד</option>
+          <option value="manager">מנהל</option>
         </select>
       </div>
 
-      {loading && <div className="loading-row">Loading team…</div>}
+      {loading && <div className="loading-row">טוען צוות…</div>}
 
       {!loading && visible.length === 0 && (
         <div className="empty-state">
           <Users size={36} />
-          <p>
-            {users.length === 0
-              ? 'No team members yet. Add your first employee.'
-              : 'No users match the current filter.'}
-          </p>
+          <p>{users.length === 0 ? 'טרם נוספו חברי צוות. הוסף את הראשון.' : 'אין משתמשים התואמים לסינון.'}</p>
         </div>
       )}
 
       {!loading && visible.length > 0 && (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Added</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((u) => (
-                <tr key={u.id}>
-                  <td className="td-primary">{u.full_name}</td>
-                  <td style={{ fontFamily: 'monospace', fontSize: '13px' }}>{u.phone_number}</td>
-                  <td>
-                    <span className={`badge ${u.role === 'manager' ? 'badge--blue' : 'badge--neutral'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${u.is_active ? 'badge--green' : 'badge--neutral'}`}>
-                      {u.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(u.created_at)}</td>
-                  <td>
-                    <RowActionsMenu items={[
-                      u.is_active
-                        ? {
-                            label:   'Deactivate',
-                            icon:    <UserX size={14} />,
-                            variant: 'danger',
-                            onClick: () => handleDeactivate(u),
-                          }
-                        : {
-                            label:   'Reactivate',
-                            icon:    <UserCheck size={14} />,
-                            onClick: () => handleReactivate(u),
-                          },
-                    ]} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mobile-cards">
+          {visible.map((u) => (
+            <div key={u.id} className="mobile-card">
+              <div className="mobile-card__header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="mobile-card__title">{u.full_name}</span>
+                  <span className={`badge ${ROLE_BADGE[u.role] || 'badge--neutral'}`}>
+                    {ROLE_HE[u.role] || u.role}
+                  </span>
+                </div>
+                <button
+                  className={`status-toggle${u.is_active ? ' status-toggle--on' : ''}`}
+                  onClick={() => handleToggleActive(u)}
+                  title={u.is_active ? 'לחץ להשבתה' : 'לחץ להפעלה'}
+                  aria-pressed={u.is_active}
+                >
+                  <span className="status-toggle__track"><span className="status-toggle__thumb" /></span>
+                  <span className="status-toggle__label">{u.is_active ? 'פעיל' : 'לא פעיל'}</span>
+                </button>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">טלפון:</span>
+                <code style={{ fontSize: '13px' }}>{u.phone_number}</code>
+              </div>
+              <div className="mobile-card__row">
+                <span className="mobile-card__label">הצטרף/ה:</span>
+                <span>{fmtDate(u.created_at)}</span>
+              </div>
+              <div className="mobile-card__row" style={{ marginTop: '4px' }}>
+                <button
+                  className="btn-ghost btn-ghost--sm btn-ghost--danger"
+                  onClick={() => setConfirmDelete({ id: u.id, name: u.full_name })}
+                  title="מחק משתמש"
+                >
+                  <Trash2 size={13} /> מחק
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {confirmDelete && (
+        <div className="confirm-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h4>מחיקת משתמש</h4>
+            <p>האם למחוק את <strong>{confirmDelete.name}</strong>? פעולה זו אינה ניתנת לביטול.</p>
+            <div className="confirm-modal__actions">
+              <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>ביטול</button>
+              <button className="btn-danger" onClick={handleDelete}>מחק</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

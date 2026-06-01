@@ -11,6 +11,11 @@
 .mobile-card {
   @include mobile-card-item;
 
+  &--critical {
+    border-right: 3px solid #b71c1c;
+    background: #fff8f8;
+  }
+
   &__header {
     display: flex;
     justify-content: space-between;
