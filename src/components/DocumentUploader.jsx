@@ -2,10 +2,13 @@ import { useRef, useState } from 'react';
 import { Paperclip, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { uploadDocument } from '../api/documents';
 
+const ACCEPT_DEFAULT = 'image/jpeg,image/png,image/webp,application/pdf';
+
 const DocumentUploader = ({
   documentType,
   label      = 'צרף מסמך',
   hint,
+  accept     = ACCEPT_DEFAULT,
   onDocumentReady,
   disabled   = false,
   maxSizeMb  = null,
@@ -52,7 +55,7 @@ const DocumentUploader = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
+        accept={accept}
         style={{ display: 'none' }}
         onChange={handleFileSelect}
       />
