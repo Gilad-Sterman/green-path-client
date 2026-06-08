@@ -93,6 +93,10 @@
 .kpi-card__value {
   font-size: $font-size-sm;
   color: $color-text;
+
+  &.underline {
+    text-decoration: underline;
+  }
 }
 
 .kpi-card__hint {

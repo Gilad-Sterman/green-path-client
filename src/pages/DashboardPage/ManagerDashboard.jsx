@@ -25,7 +25,7 @@ const MGMT_TILES = [
   { to: '/suppliers', icon: Building2, label: 'ניהול ספקים ולקוחות' },
   // { to: '/credits', icon: Award, label: 'קרדיטים' },
   // { to: '/reports', icon: BarChart3, label: 'דו"ח' },
-  { to: '/flags', icon: Flag, label: 'דגלים' },
+  { to: '/retro-intake', icon: Flag, label: 'העלאת נתוני הסמכה (רטרו)' },
   { to: '/settings', icon: Settings, label: 'הגדרות' },
 ];
 
@@ -148,9 +148,9 @@ const ManagerDashboard = () => {
             {summaryLoading ? '…' : fmtKg(parseFloat(creditsSummary?.total_credits_kg || 0))}
           </span>
         </div>
-        <Link to="/flags" className={`kpi-card kpi-card--link${openFlags > 0 ? ' kpi-card--warn' : ''}`}>
+        <Link to="/flags" className={`kpi-card kpi-card--link`}>
           <span className="kpi-card__label">דגלים פתוחים</span>
-          <span className="kpi-card__value">{openFlags === null ? '…' : openFlags}</span>
+          <span className="kpi-card__value underline">{openFlags === null ? '…' : openFlags} דגלים פתוחים</span>
         </Link>
       </div>
     </div>

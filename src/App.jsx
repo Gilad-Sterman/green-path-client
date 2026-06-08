@@ -24,6 +24,7 @@ import TeamPage         from './pages/ManagerPages/TeamPage';
 import NewIntakePage       from './pages/EmployeePages/NewIntakePage';
 import SettingsPage        from './pages/SettingsPage/SettingsPage';
 import ReportsPage         from './pages/ManagerPages/ReportsPage';
+import RetroIntakePage     from './pages/ManagerPages/RetroIntakePage';
 import AdminReportsPage    from './pages/AdminPages/AdminReportsPage';
 
 // Redirect to the correct home based on role
@@ -88,7 +89,8 @@ const App = () => {
               <Route path="credits"   element={<CreditsPage />} />
               <Route path="flags"     element={<FlagsPage />} />
               <Route path="team"      element={<TeamPage />} />
-              <Route path="reports"   element={<ReportsPage />} />
+              <Route path="reports"      element={<ReportsPage />} />
+              <Route path="retro-intake" element={<RetroIntakePage />} />
             </Route>
 
             {/* internal_admin only */}

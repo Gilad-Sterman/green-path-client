@@ -12,6 +12,7 @@ import shipmentsReducer from './slices/shipmentsSlice';
 import creditsReducer   from './slices/creditsSlice';
 import flagsReducer     from './slices/flagsSlice';
 import reportsReducer   from './slices/reportsSlice';
+import retroReducer     from './slices/retroSlice';
 
 const combinedReducer = combineReducers({
   auth:      authReducer,
@@ -26,6 +27,7 @@ const combinedReducer = combineReducers({
   credits:   creditsReducer,
   flags:     flagsReducer,
   reports:   reportsReducer,
+  retro:     retroReducer,
 });
 
 const RESET_ACTIONS = new Set(['auth/logout/fulfilled', 'auth/clearAuth']);
