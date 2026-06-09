@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Users, UserCheck, UserX, Search, Building2, RefreshCw } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
+import Toast from '../../components/Toast';
 import { fetchUsers, deactivateUserThunk, reactivateUserThunk } from '../../store/slices/usersSlice';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import { fetchFactories } from '../../store/slices/factoriesSlice';
@@ -26,10 +27,12 @@ const AdminUsersPage = () => {
   const refreshedLabel = useRelativeTime(lastFetched);
   const { list: factories, loading: factoriesLoading } = useSelector((s) => s.factories);
 
-  const [search,     setSearch]     = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [factFilter, setFactFilter] = useState('');
+  const [search,       setSearch]       = useState('');
+  const [roleFilter,   setRoleFilter]   = useState('');
+  const [factFilter,   setFactFilter]   = useState('');
   const [activeFilter, setActiveFilter] = useState('');
+  const [toast,        setToast]        = useState('');
+  const [toastType,    setToastType]    = useState('success');
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -37,10 +40,14 @@ const AdminUsersPage = () => {
   }, [dispatch]);
 
   const toggleActive = async (user) => {
-    if (user.is_active) {
-      await dispatch(deactivateUserThunk(user.id));
+    const thunk  = user.is_active ? deactivateUserThunk : reactivateUserThunk;
+    const result = await dispatch(thunk(user.id));
+    if (thunk.fulfilled.match(result)) {
+      setToastType('success');
+      setToast(user.is_active ? `${user.full_name} הושבת/ה.` : `${user.full_name} הופעל/ה.`);
     } else {
-      await dispatch(reactivateUserThunk(user.id));
+      setToastType('error');
+      setToast(result.payload || 'שגיאה בשינוי הסטטוס.');
     }
   };
 
@@ -61,6 +68,7 @@ const AdminUsersPage = () => {
 
   return (
     <div className="admin-page">
+      <Toast message={toast} type={toastType} onClose={() => setToast('')} />
       <div className="admin-page__header">
         <div>
           <h1>משתמשים</h1>

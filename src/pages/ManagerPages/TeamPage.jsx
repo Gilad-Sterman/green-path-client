@@ -42,6 +42,7 @@ const TeamPage = () => {
   const [saving,       setSaving]       = useState(false);
   const [formError,    setFormError]    = useState('');
   const [toast,        setToast]        = useState('');
+  const [toastType,    setToastType]    = useState('success');
   const [statusFilter,  setStatusFilter]  = useState('all');
   const [roleFilter,    setRoleFilter]    = useState('');
 
@@ -86,7 +87,11 @@ const TeamPage = () => {
     const thunk = user.is_active ? deactivateUserThunk : reactivateUserThunk;
     const result = await dispatch(thunk(user.id));
     if (thunk.fulfilled.match(result)) {
+      setToastType('success');
       setToast(user.is_active ? `${user.full_name} הושבת/ה.` : `${user.full_name} הופעל/ה.`);
+    } else {
+      setToastType('error');
+      setToast(result.payload || 'שגיאה בשינוי הסטטוס.');
     }
   };
 
@@ -121,7 +126,7 @@ const TeamPage = () => {
         <Plus size={16} /> הוספת עובד
       </button>
 
-      <Toast message={toast} onClose={() => setToast('')} />
+      <Toast message={toast} type={toastType} onClose={() => setToast('')} />
       {error && <div className="alert alert--error"><AlertCircle size={16} />{error}</div>}
 
       {showForm && (

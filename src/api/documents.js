@@ -1,8 +1,9 @@
 import api from './client';
 
-export const analyzeDocument = (file) => {
+export const analyzeDocument = (file, documentType = 'intake') => {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('document_type', documentType);
   return api.post('/documents/analyze', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });

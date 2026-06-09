@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getIntakes, createIntake, updateIntake } from '../../api/intakes';
+import { getIntakes, createIntake, updateIntake, addInternalWeighing } from '../../api/intakes';
 import { cache, CACHE_KEYS } from '../cache';
 
 export const fetchIntakes = createAsyncThunk(
@@ -30,6 +30,19 @@ export const createIntakeThunk = createAsyncThunk(
       return data.data.intake;
     } catch (err) {
       return rejectWithValue(err.response?.data?.error?.message || 'Failed to create intake');
+    }
+  }
+);
+
+export const addWeighingThunk = createAsyncThunk(
+  'intakes/addWeighing',
+  async ({ intakeId, body }, { rejectWithValue }) => {
+    try {
+      const { data } = await addInternalWeighing(intakeId, body);
+      cache.invalidate(CACHE_KEYS.FLAGS);
+      return { intakeId, record: data.data.record };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error?.message || 'שגיאה בהוספת שקילה פנימית');
     }
   }
 );
@@ -67,7 +80,18 @@ const intakesSlice = createSlice({
       })
       .addCase(fetchIntakes.rejected,  (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(createIntakeThunk.fulfilled, (state, action) => { state.list.unshift(action.payload); })
-      .addCase(updateIntakeThunk.fulfilled, updateInList);
+      .addCase(updateIntakeThunk.fulfilled, updateInList)
+      .addCase(addWeighingThunk.fulfilled, (state, action) => {
+        const { intakeId, record } = action.payload;
+        const idx = state.list.findIndex((i) => i.id === intakeId);
+        if (idx !== -1) {
+          state.list[idx] = {
+            ...state.list[idx],
+            internal_weight_kg:    record.measured_weight,
+            has_internal_weighing: true,
+          };
+        }
+      });
   },
 });
 

@@ -489,7 +489,7 @@
   cursor: pointer;
   font-size: $font-size-sm;
   color: $color-text;
-  text-align: left;
+  text-align: right;
   transition: background $transition-fast;
 
   &:hover              { background: $color-bg; }

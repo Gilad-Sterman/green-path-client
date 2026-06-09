@@ -54,9 +54,12 @@ const ManagerDashboard = () => {
   useEffect(() => {
     dispatch(fetchIntakes());
     dispatch(fetchBatches({ force: false }));
-    dispatch(fetchCreditsSummary());
     dispatch(fetchFlagsSummary());
   }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(fetchCreditsSummary({ date_from: getPeriodStart(period).toISOString() }));
+  }, [dispatch, period]);
 
   const openFlags = flagsSummary?.open ?? null;
 

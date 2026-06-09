@@ -1273,3 +1273,131 @@
   font-size: $font-size-xs;
   color: $color-text-muted;
 }
+
+// ── Internal weighing modal ────────────────────────────────────────────────────
+.iw-modal {
+  @include card;
+  width: calc(100vw - 32px);
+  max-width: 400px;
+  animation: modal-in 0.18s ease;
+
+  &__header {
+    @include flex-between;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $color-border;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    flex-wrap: wrap;
+    padding: $space-2 $space-4;
+    background: $color-bg;
+    border-bottom: 1px solid $color-border;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+
+  &__info-sep {
+    color: $color-border;
+  }
+
+  &__body {
+    padding: $space-3 $space-4 $space-4;
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    font-size: $font-size-xs;
+    color: $color-error;
+    background: $color-error-bg;
+    padding: $space-2 $space-3;
+    border-radius: $radius-sm;
+  }
+
+  &__fields-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $space-3;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    label {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $color-text-muted;
+    }
+
+    input {
+      padding: $space-2 $space-3;
+      border: 1px solid $color-border;
+      border-radius: $radius-sm;
+      font-size: $font-size-sm;
+      color: $color-text;
+      background: $color-surface;
+      width: 100%;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+    }
+  }
+
+  &__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $space-2;
+    margin-top: $space-1;
+  }
+}
+
+.iw-file-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  cursor: pointer;
+  padding: $space-2 $space-3;
+  border: 1.5px dashed $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  transition: border-color 0.15s, color 0.15s;
+  width: 100%;
+
+  &:hover          { border-color: $color-primary; color: $color-primary; }
+  &--busy          { cursor: default; pointer-events: none; }
+  &--done          { border-style: solid; border-color: $color-primary; color: $color-primary; }
+}
+
+.iw-ocr-hint {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  margin-top: -$space-2;
+}
+
+.intake-card__row--weighing {
+  border-top: 1px dashed $color-border;
+  padding-top: $space-1;
+  margin-top: $space-1;
+}

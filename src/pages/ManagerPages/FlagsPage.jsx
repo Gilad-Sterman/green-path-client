@@ -29,6 +29,7 @@ const REASON_HE = {
   'ocr-mismatch':            'אי-התאמת OCR',
   'out-of-factory':          'פעולה מחוץ למפעל',
   'inactive-product':        'תוצ"ג לא פעיל',
+  'weight-discrepancy':      'פער משקל בין ספק לשקילה פנימית',
 };
 
 const ENTITY_HE = {

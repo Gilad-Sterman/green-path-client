@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Package, Plus, AlertCircle, RefreshCw, Pencil } from 'lucide-react';
+import { Package, Plus, AlertCircle, RefreshCw, Pencil, Scale } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import useRelativeTime from '../../hooks/useRelativeTime';
+import Toast from '../../components/Toast';
+import InternalWeighingModal from '../../components/InternalWeighingModal';
 import { fetchIntakes } from '../../store/slices/intakesSlice';
 
 const MATERIAL_TYPES = ['plastic', 'paper', 'metal', 'glass', 'textile', 'rubber', 'mixed', 'other'];
@@ -31,8 +33,10 @@ const IntakesPage = () => {
   const isManager = user?.role === 'manager' || user?.role === 'internal_admin';
   const refreshedLabel = useRelativeTime(lastFetched);
 
-  const [filter, setFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [filter,         setFilter]         = useState('all');
+  const [typeFilter,     setTypeFilter]     = useState('');
+  const [weighingIntake, setWeighingIntake] = useState(null);
+  const [toast,          setToast]          = useState('');
 
   useEffect(() => {
     dispatch(fetchIntakes({ force: false }));
@@ -116,6 +120,7 @@ const IntakesPage = () => {
                   {isManager && (
                     <RowActionsMenu items={[
                       { label: 'עריכה', icon: <Pencil size={14} />, onClick: () => navigate('/intakes/new', { state: { intake: i } }) },
+                      { label: 'הוספת שקילה פנימית', icon: <Scale size={14} />, onClick: () => setWeighingIntake(i) },
                     ]} />
                   )}
                 </div>
@@ -135,6 +140,12 @@ const IntakesPage = () => {
                   </span>
                 </div>
               )}
+              {i.has_internal_weighing && (
+                <div className="intake-card__row intake-card__row--weighing">
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>שקילה פנימית:</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>{fmtKg(i.internal_weight_kg)}</span>
+                </div>
+              )}
               <div className="intake-card__meta">
                 <span>תעודה: <code>{i.delivery_note_number}</code></span>
                 {i.created_by_name && <span>הוזן ע"י: {i.created_by_name}</span>}
@@ -142,6 +153,14 @@ const IntakesPage = () => {
             </div>
           ))}
         </div>
+      )}
+      <Toast message={toast} onClose={() => setToast('')} />
+      {weighingIntake && (
+        <InternalWeighingModal
+          intake={weighingIntake}
+          onClose={() => setWeighingIntake(null)}
+          onSuccess={() => setToast(`שקילה פנימית נוספה בהצלחה לקליטה מ-${weighingIntake.supplier_name || ''}.`)}
+        />
       )}
     </div>
   );
