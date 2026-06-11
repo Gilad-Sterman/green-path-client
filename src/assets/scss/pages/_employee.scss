@@ -138,7 +138,6 @@
 
   &__top {
     @include flex-between;
-    align-items: flex-start;
     gap: $space-2;
   }
 
@@ -169,7 +168,7 @@
 
   &__meta {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: $space-3;
     font-size: $font-size-xs;
     color: $color-text-muted;

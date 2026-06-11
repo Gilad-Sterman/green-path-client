@@ -7,15 +7,15 @@ import { fetchSuppliers } from '../../store/slices/suppliersSlice';
 import { fetchFlagsSummary, invalidateFlags } from '../../store/slices/flagsSlice';
 import { analyzeDocument, uploadDocument } from '../../api/documents';
 
-const MATERIAL_TYPES   = ['PET', 'HDPE', 'PP', 'LDPE', 'PVC', 'PE', 'mixed', 'other'];
+const MATERIAL_TYPES = ['PET', 'HDPE', 'PP', 'LDPE', 'PVC', 'PE', 'mixed', 'other'];
 
 const MATERIAL_ALIASES = {
-  PET:   ['pet', 'פ.א.ט', 'polyethylene terephthalate'],
-  HDPE:  ['hdpe', 'high density polyethylene', 'פוליאתילן בצפיפות גבוהה'],
-  PP:    ['pp', 'polypropylene', 'פוליפרופילן'],
-  LDPE:  ['ldpe', 'low density polyethylene', 'פוליאתילן בצפיפות נמוכה'],
-  PVC:   ['pvc', 'פי.וי.סי', 'polyvinyl chloride'],
-  PE:    ['pe', 'polyethylene', 'פוליאתילן'],
+  PET: ['pet', 'פ.א.ט', 'polyethylene terephthalate'],
+  HDPE: ['hdpe', 'high density polyethylene', 'פוליאתילן בצפיפות גבוהה'],
+  PP: ['pp', 'polypropylene', 'פוליפרופילן'],
+  LDPE: ['ldpe', 'low density polyethylene', 'פוליאתילן בצפיפות נמוכה'],
+  PVC: ['pvc', 'פי.וי.סי', 'polyvinyl chloride'],
+  PE: ['pe', 'polyethylene', 'פוליאתילן'],
   mixed: ['מעורב', 'mixed'],
 };
 
@@ -27,14 +27,13 @@ const matchMaterialType = (hint = '') => {
   return null;
 };
 
-const MATERIAL_SOURCES = ['post_consumer', 'post_industrial', 'commercial', 'municipal', 'other'];
-const MATERIAL_STATUSES = ['recycled', 'virgin', 'mixed'];
+
 
 const today = () => new Date().toISOString().split('T')[0];
 
 const EMPTY_FORM = {
   supplier_id: '', intake_date: today(), delivery_note_number: '',
-  material_type: '', material_source: '', material_status: '',
+  material_type: '', is_recycled: true,
   net_weight_kg: '', eligible_input_percent: '100', notes: '',
 };
 
@@ -42,6 +41,7 @@ const MATERIAL_TYPE_HE = {
   PET: 'PET', HDPE: 'HDPE', PP: 'PP', LDPE: 'LDPE',
   PVC: 'PVC', PE: 'PE', mixed: 'מעורב', other: 'אחר',
 };
+
 const MATERIAL_SOURCE_HE = {
   post_consumer: 'פוסט-צרכני', post_industrial: 'פוסט-תעשייתי',
   commercial: 'מסחרי', municipal: 'עירוני', other: 'אחר',
@@ -50,7 +50,7 @@ const MATERIAL_STATUS_HE = { recycled: 'ממוחזר', virgin: 'גולמי', mix
 
 const CONFIDENCE_LABELS = {
   auto: { label: 'מולא אוטומטית', cls: 'ocr-badge--auto' },
-  warn: { label: 'לבדיקה',        cls: 'ocr-badge--warn' },
+  warn: { label: 'לבדיקה', cls: 'ocr-badge--warn' },
 };
 
 const parseDateValue = (raw) => {
@@ -66,25 +66,25 @@ const normalizeStr = (s) =>
   (s || '').toLowerCase().trim().replace(/[^\w\u0590-\u05FF\s]/gu, '').replace(/\s+/g, ' ');
 
 const NewIntakePage = () => {
-  const dispatch    = useDispatch();
-  const navigate    = useNavigate();
-  const location    = useLocation();
-  const editIntake  = location.state?.intake || null;
-  const editingId   = editIntake?.id || null;
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const editIntake = location.state?.intake || null;
+  const editingId = editIntake?.id || null;
   const { list: suppliers } = useSelector((s) => s.suppliers);
   const { user } = useSelector((s) => s.auth);
   const fileInputRef = useRef(null);
 
-  const [form,       setForm]       = useState(EMPTY_FORM);
-  const [saving,     setSaving]     = useState(false);
-  const [error,      setError]      = useState('');
-  const [success,    setSuccess]    = useState(false);
-  const [ocrLoading,      setOcrLoading]      = useState(false);
-  const [ocrError,        setOcrError]        = useState('');
-  const [ocrFields,       setOcrFields]       = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState('');
+  const [ocrFields, setOcrFields] = useState(null);
   const [ocrSupplierHint, setOcrSupplierHint] = useState('');
-  const [ocrExtras,       setOcrExtras]       = useState(null);
-  const [docId,           setDocId]           = useState(null);
+  const [ocrExtras, setOcrExtras] = useState(null);
+  const [docId, setDocId] = useState(null);
 
   useEffect(() => {
     dispatch(fetchSuppliers());
@@ -94,15 +94,14 @@ const NewIntakePage = () => {
   useEffect(() => {
     if (editIntake) {
       setForm({
-        supplier_id:            String(editIntake.supplier_id),
-        intake_date:            editIntake.intake_date?.split('T')[0] || today(),
-        delivery_note_number:   editIntake.delivery_note_number || '',
-        material_type:          editIntake.material_type || '',
-        material_source:        editIntake.material_source || '',
-        material_status:        editIntake.material_status || '',
-        net_weight_kg:          String(editIntake.net_weight_kg),
+        supplier_id: String(editIntake.supplier_id),
+        intake_date: editIntake.intake_date?.split('T')[0] || today(),
+        delivery_note_number: editIntake.delivery_note_number || '',
+        material_type: editIntake.material_type || '',
+        is_recycled: editIntake.is_recycled,
+        net_weight_kg: String(editIntake.net_weight_kg),
         eligible_input_percent: String(editIntake.eligible_input_percent ?? 100),
-        notes:                  editIntake.notes || '',
+        notes: editIntake.notes || '',
       });
     }
   }, [editIntake?.id]);
@@ -204,26 +203,27 @@ const NewIntakePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.supplier_id)                 { setError('יש לבחור ספק.'); return; }
-    if (!form.material_type)               { setError('יש לבחור סוג חומר.'); return; }
-    if (!form.material_source)             { setError('יש לבחור מקור חומר.'); return; }
-    if (!form.material_status)             { setError('יש לבחור סטטוס חומר.'); return; }
-    if (!form.net_weight_kg)               { setError('יש להזין משקל נטו.'); return; }
-    if (!form.intake_date)                 { setError('יש להזין תאריך קליטה.'); return; }
+    if (!form.supplier_id) { setError('יש לבחור ספק.'); return; }
+    if (!form.material_type) { setError('יש לבחור סוג חומר.'); return; }
+    // if (!form.material_source) { setError('יש לבחור מקור חומר.'); return; }
+    // if (!form.material_status) { setError('יש לבחור סטטוס חומר.'); return; }
+    if (!form.net_weight_kg) { setError('יש להזין משקל נטו.'); return; }
+    if (!form.intake_date) { setError('יש להזין תאריך קליטה.'); return; }
     if (!form.delivery_note_number.trim()) { setError('יש להזין מספר תעודת משלוח.'); return; }
 
     const payload = {
-      supplier_id:            form.supplier_id,
-      intake_date:            form.intake_date,
-      delivery_note_number:   form.delivery_note_number.trim(),
-      material_type:          form.material_type,
-      material_source:        form.material_source,
-      material_status:        form.material_status,
-      net_weight_kg:          parseFloat(form.net_weight_kg),
-      eligible_input_percent: parseFloat(form.eligible_input_percent),
-      data_entry_profile:     editingId ? undefined : (docId ? 'camera_upload' : 'manual_capture'),
-      notes:                  form.notes || undefined,
-      document_ids:           docId ? [docId] : [],
+      supplier_id: form.supplier_id,
+      intake_date: form.intake_date,
+      delivery_note_number: form.delivery_note_number.trim(),
+      material_type: form.material_type,
+      // material_source: form.material_source,
+      // material_status: form.material_status,
+      is_recycled: form.is_recycled,
+      eligible_input_percent: form.is_recycled ? 100 : 0,
+      net_weight_kg: parseFloat(form.net_weight_kg),
+      data_entry_profile: editingId ? undefined : (docId ? 'camera_upload' : 'manual_capture'),
+      notes: form.notes || undefined,
+      document_ids: docId ? [docId] : [],
     };
 
     setSaving(true);
@@ -335,13 +335,13 @@ const NewIntakePage = () => {
         {ocrError && (
           <p className="ocr-upload-banner__error">{ocrError}</p>
         )}
-        {ocrExtras && (
+        {/* {ocrExtras && (
           <div className="ocr-extras">
-            {ocrExtras.client_name   && <span className="ocr-extras__chip"><strong>לקוח:</strong> {ocrExtras.client_name}</span>}
-            {ocrExtras.carrier_name  && <span className="ocr-extras__chip"><strong>מוביל:</strong> {ocrExtras.carrier_name}</span>}
+            {ocrExtras.client_name && <span className="ocr-extras__chip"><strong>לקוח:</strong> {ocrExtras.client_name}</span>}
+            {ocrExtras.carrier_name && <span className="ocr-extras__chip"><strong>מוביל:</strong> {ocrExtras.carrier_name}</span>}
             {ocrExtras.material_hint && <span className="ocr-extras__chip"><strong>חומר:</strong> {ocrExtras.material_hint}</span>}
           </div>
-        )}
+        )} */}
       </div>}
 
       <form onSubmit={handleSubmit} className="employee-form">
@@ -398,16 +398,16 @@ const NewIntakePage = () => {
               onChange={handleChange}
             />
           </div>
-          <div className="employee-form__field">
+          {/* <div className="employee-form__field">
             <label>סטטוס חומר <span className="required">*</span></label>
             <select name="material_status" value={form.material_status} onChange={handleChange}>
               <option value="">— בחר —</option>
               {MATERIAL_STATUSES.map((s) => <option key={s} value={s}>{MATERIAL_STATUS_HE[s] || s}</option>)}
             </select>
-          </div>
+          </div> */}
         </div>
 
-        <div className="employee-form__row">
+        {/* <div className="employee-form__row">
           <div className="employee-form__field">
             <label>סוג חומר גלם <span className="required">*</span>
               {ocrFields?.material_type && (
@@ -427,6 +427,35 @@ const NewIntakePage = () => {
               <option value="">— בחר מקור —</option>
               {MATERIAL_SOURCES.map((s) => <option key={s} value={s}>{MATERIAL_SOURCE_HE[s] || s}</option>)}
             </select>
+          </div>
+        </div> */}
+        <div className="employee-form__row">
+          <div className="employee-form__field">
+            <label>סוג חומר גלם <span className="required">*</span>
+              {ocrFields?.material_type && (
+                <span className={`ocr-badge ${CONFIDENCE_LABELS[ocrFields.material_type.fill]?.cls}`}>
+                  {CONFIDENCE_LABELS[ocrFields.material_type.fill]?.label}
+                </span>
+              )}
+            </label>
+            <select name="material_type" value={form.material_type} onChange={handleChange}>
+              <option value="">— בחר סוג —</option>
+              {MATERIAL_TYPES.map((t) => <option key={t} value={t}>{MATERIAL_TYPE_HE[t] || t}</option>)}
+            </select>
+          </div>
+          <div className="employee-form__field">
+            <label>האם החומר ממוחזר? <span className="required">*</span></label>
+            <button
+              type="button"
+              className={`status-toggle${form.is_recycled ? ' status-toggle--on' : ''}`}
+              onClick={() => setForm((p) => ({ ...p, is_recycled: !p.is_recycled }))}
+              title={form.is_recycled ? 'לחץ לסימון כלא ממוחזר' : 'לחץ לסימון כממוחזר'}
+            >
+              <span className="status-toggle__track">
+                <span className="status-toggle__thumb" />
+              </span>
+              <span className="status-toggle__label">{form.is_recycled ? 'כן — ממוחזר (100% זכאות)' : 'לא — גולמי (0% זכאות)'}</span>
+            </button>
           </div>
         </div>
 
@@ -448,7 +477,7 @@ const NewIntakePage = () => {
               inputMode="decimal"
             />
           </div>
-          <div className="employee-form__field">
+          {/* <div className="employee-form__field">
             <label>אחוז זכאות <span className="form-hint">(0–100)</span></label>
             <input
               name="eligible_input_percent"
@@ -457,7 +486,7 @@ const NewIntakePage = () => {
               onChange={handleChange}
               inputMode="numeric"
             />
-          </div>
+          </div> */}
         </div>
 
         {eligibleKg() && (

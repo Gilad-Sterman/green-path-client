@@ -9,20 +9,20 @@ import {
   deactivateProductThunk, reactivateProductThunk, clearProductsError,
 } from '../../store/slices/productsSlice';
 
-const EMPTY_FORM = { name: '', sku: '', description: '', required_lab_tests: '' };
+const EMPTY_FORM = { name: '', sku: '', description: '', required_lab_tests: '', is_active: true };
 const FILTERS = ['all', 'active', 'inactive'];
 const FILTER_LABELS = { all: 'הכל', active: 'פעיל', inactive: 'לא פעיל' };
 
 const RECIPE_MATERIALS = [
-  { value: 'PET',   label: 'PET',     is_recycled: true  },
-  { value: 'HDPE',  label: 'HDPE',    is_recycled: true  },
-  { value: 'PP',    label: 'PP',      is_recycled: true  },
-  { value: 'LDPE',  label: 'LDPE',    is_recycled: true  },
-  { value: 'PVC',   label: 'PVC',     is_recycled: true  },
-  { value: 'PE',    label: 'PE',      is_recycled: true  },
-  { value: 'mixed', label: 'מעורב',   is_recycled: true  },
-  { value: 'other', label: 'אחר',     is_recycled: true  },
-  { value: 'virgin',label: 'וירג׳ין', is_recycled: false },
+  { value: 'PET', label: 'PET', is_recycled: true },
+  { value: 'HDPE', label: 'HDPE', is_recycled: true },
+  { value: 'PP', label: 'PP', is_recycled: true },
+  { value: 'LDPE', label: 'LDPE', is_recycled: true },
+  { value: 'PVC', label: 'PVC', is_recycled: true },
+  { value: 'PE', label: 'PE', is_recycled: true },
+  { value: 'mixed', label: 'מעורב', is_recycled: true },
+  { value: 'other', label: 'אחר', is_recycled: true },
+  { value: 'virgin', label: 'וירג׳ין', is_recycled: false },
 ];
 const EMPTY_RECIPE_ROW = { material_type: '', is_recycled: true, percent: '' };
 
@@ -42,7 +42,9 @@ const ProductsPage = () => {
 
   useEffect(() => { dispatch(fetchProducts()); }, [dispatch]);
 
-  const handleChange = (e) => { setForm((p) => ({ ...p, [e.target.name]: e.target.value })); setFormError(''); };
+  const handleChange = (e) => {
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value })); setFormError('');
+  };
 
   const addMaterial = () => setRecipe((p) => p.length < 6 ? [...p, { ...EMPTY_RECIPE_ROW }] : p);
   const removeMaterial = (idx) => setRecipe((p) => p.filter((_, i) => i !== idx));
@@ -65,6 +67,7 @@ const ProductsPage = () => {
       sku: p.sku,
       description: p.description || '',
       required_lab_tests: (p.required_lab_tests || []).join(', '),
+      is_active: p.is_active,
     });
     setRecipe(
       p.material_recipe?.length > 0
@@ -78,7 +81,7 @@ const ProductsPage = () => {
     e.preventDefault();
     if (!form.name.trim()) { setFormError('יש להזין שם תוצ"ג.'); return; }
     if (form.name.trim().length > 30) { setFormError('שם תוצ"ג יכול להכיל עד 30 תווים.'); return; }
-    if (!form.sku.trim()) { setFormError('יש להזין מקטלג (SKU).'); return; }
+    // if (!form.sku.trim()) { setFormError('יש להזין מקטלג (SKU).'); return; }
 
     const validRecipe = recipe.filter((r) => r.material_type && r.percent);
     if (validRecipe.length === 0) { setFormError('יש להגדיר לפחות חומר מקור אחד.'); return; }
@@ -92,11 +95,12 @@ const ProductsPage = () => {
 
     const payload = {
       name: form.name.trim(),
-      sku: form.sku.trim(),
+      // sku: form.sku.trim(),
       description: form.description || undefined,
-      required_lab_tests: form.required_lab_tests.split(',').map((t) => t.trim()).filter(Boolean),
+      // required_lab_tests: form.required_lab_tests.split(',').map((t) => t.trim()).filter(Boolean),
       material_recipe: validRecipe.map((r) => ({ material_type: r.material_type, is_recycled: r.is_recycled, percent: parseFloat(r.percent) })),
       eligible_percent: computedEligible,
+      is_active: form.is_active,
     };
 
     setSaving(true);
@@ -164,19 +168,14 @@ const ProductsPage = () => {
 
             <div className="form-field">
               <label>שם תוצ"ג <span className="required">*</span></label>
-              <input name="name" value={form.name} onChange={handleChange} placeholder="לדוגמה: rPET גרנולות" maxLength={30} />
+              <input name="name" value={form.name} onChange={handleChange} placeholder="לדוגמה: rPET גרנולות" maxLength={30} disabled={!!editingId} />
             </div>
-            <div className="form-field">
+            {/* <div className="form-field">
               <label>מקטלג (SKU) <span className="required">*</span></label>
               <input name="sku" value={form.sku} onChange={handleChange} placeholder="לדוגמה: RPET-001" />
-            </div>
+            </div> */}
 
-            <div className="form-field">
-              <label>תיאור</label>
-              <textarea name="description" value={form.description} onChange={handleChange} placeholder="תיאור אופציונלי למוצר..." rows={2} maxLength={200} />
-            </div>
-
-            <div className="form-field">
+            {/* <div className="form-field">
               <label>בדיקות מעבדה <span className="form-hint">(מופרדות בפסיק, אופציונלי)</span></label>
               <input
                 name="required_lab_tests"
@@ -184,19 +183,19 @@ const ProductsPage = () => {
                 onChange={handleChange}
                 placeholder="לדוגמה: זיהום, לחות, ויסקוזיטה"
               />
-            </div>
+            </div> */}
 
             <div className="components-section">
               <div className="components-section__header">
                 <label>חומרים משתתפים <span className="required">*</span></label>
-                <button type="button" className="btn-ghost btn-ghost--sm" onClick={addMaterial} disabled={recipe.length >= 6}>
+                <button type="button" className="btn-ghost btn-ghost--sm" onClick={addMaterial} disabled={recipe.length >= 6 || !!editingId}>
                   <Plus size={13} /> הוסף חומר
                 </button>
               </div>
               {recipe.map((row, idx) => (
                 <div key={idx} className="component-row">
                   <div className="component-row__select">
-                    <select value={row.material_type} onChange={(e) => updateRecipeMaterial(idx, 'material_type', e.target.value)}>
+                    <select value={row.material_type} onChange={(e) => updateRecipeMaterial(idx, 'material_type', e.target.value)} disabled={!!editingId}>
                       <option value="">— בחר חומר —</option>
                       {RECIPE_MATERIALS.map((m) => (
                         <option key={m.value} value={m.value} disabled={recipe.some((r, i) => i !== idx && r.material_type === m.value)}>
@@ -211,6 +210,7 @@ const ProductsPage = () => {
                       placeholder="%"
                       value={row.percent}
                       onChange={(e) => updateRecipeMaterial(idx, 'percent', e.target.value)}
+                      disabled={!!editingId}
                     />
                   </div>
                   {recipe.length > 1 && (
@@ -233,6 +233,25 @@ const ProductsPage = () => {
               )}
             </div>
 
+            <div className="form-field">
+              <label>תיאור</label>
+              <textarea name="description" value={form.description} onChange={handleChange} placeholder="תיאור אופציונלי למוצר..." rows={2} maxLength={200} />
+            </div>
+
+            <div className="form-field">
+              <label>סטטוס</label>
+              <button
+                type="button"
+                className={`status-toggle${form.is_active ? ' status-toggle--on' : ''}`}
+                onClick={() => handleChange({ target: { name: 'is_active', value: !form.is_active } })}
+                title={form.is_active ? 'לחץ להשבתה' : 'לחץ להפעלה'}
+              >
+                <span className="status-toggle__track">
+                  <span className="status-toggle__thumb" />
+                </span>
+                <span className="status-toggle__label">{form.is_active ? 'פעיל' : 'לא פעיל'}</span>
+              </button>
+            </div>
             <div className="form-actions">
               <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>ביטול</button>
               <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'שומר…' : editingId ? 'שמור שינויים' : 'צור תוצ"ג'}</button>
@@ -266,42 +285,41 @@ const ProductsPage = () => {
           {visible.map((p) => (
             <div key={p.id} className="mobile-card">
               <div className="mobile-card__header">
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
                   <span className="mobile-card__title">{p.name}</span>
-                  <code className="mobile-card__sku">{p.sku}</code>
+                  {p.eligible_percent != null && (
+                    <div className="mobile-card__row">
+                      <span className="mobile-card__label">אחוז זכאות: {parseFloat(p.eligible_percent).toFixed(0)}%</span>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    className={`status-toggle${p.is_active ? ' status-toggle--on' : ''}`}
-                    onClick={() => handleToggleActive(p)}
-                    title={p.is_active ? 'לחץ להשבתה' : 'לחץ להפעלה'}
-                    aria-pressed={p.is_active}
-                  >
-                    <span className="status-toggle__track">
-                      <span className="status-toggle__thumb" />
-                    </span>
-                    <span className="status-toggle__label">{p.is_active ? 'פעיל' : 'לא פעיל'}</span>
-                  </button>
                   <RowActionsMenu items={[
-                    { label: 'עריכה', icon: <Pencil size={14} />, onClick: () => handleEdit(p) },
+                    { label: 'עריכה / צפייה', icon: <Pencil size={14} />, onClick: () => handleEdit(p) },
                   ]} />
                 </div>
               </div>
-              {p.eligible_percent != null && (
-                <div className="mobile-card__row">
-                  <span className="mobile-card__label">אחוז זכאות:</span>
-                  <strong>{parseFloat(p.eligible_percent).toFixed(0)}%</strong>
-                </div>
-              )}
-              {p.description && <p className="mobile-card__desc">{p.description}</p>}
-              {p.required_lab_tests?.length > 0 && (
+              <button
+                className={`status-toggle${p.is_active ? ' status-toggle--on' : ''}`}
+                onClick={() => handleToggleActive(p)}
+                title={p.is_active ? 'לחץ להשבתה' : 'לחץ להפעלה'}
+                aria-pressed={p.is_active}
+              >
+                <span className="status-toggle__track">
+                  <span className="status-toggle__thumb" />
+                </span>
+                <span className="status-toggle__label">{p.is_active ? 'פעיל' : 'לא פעיל'}</span>
+              </button>
+
+              {/* {p.description && <p className="mobile-card__desc">{p.description}</p>} */}
+              {/* {p.required_lab_tests?.length > 0 && (
                 <div className="mobile-card__tags">
                   <span className="mobile-card__label">בדיקות:</span>
                   <div className="tag-list">
                     {p.required_lab_tests.map((t) => <span key={t} className="tag">{t}</span>)}
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           ))}
         </div>

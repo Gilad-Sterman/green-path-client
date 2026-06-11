@@ -17,13 +17,13 @@ const MATERIAL_TYPE_HE = {
   glass: 'זכוכית', textile: 'טקסטיל', rubber: 'גומי', mixed: 'מעורב', other: 'אחר',
 };
 const MATERIAL_STATUS_HE = { recycled: 'ממוחזר', virgin: 'גולמי', mixed: 'מעורב' };
-const FILTER_LABELS = { all: 'הכל', recycled: 'ממוחזר', virgin: 'גולמי', mixed: 'מעורב' };
+const FILTER_LABELS = { all: 'הכל', recycled: 'ממוחזר', virgin: 'בתולי' };
 
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const fmtKg = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
 
-const FILTERS = ['all', 'recycled', 'virgin', 'mixed'];
+const FILTERS = ['all', 'recycled', 'virgin'];
 
 const IntakesPage = () => {
   const dispatch = useDispatch();
@@ -33,10 +33,10 @@ const IntakesPage = () => {
   const isManager = user?.role === 'manager' || user?.role === 'internal_admin';
   const refreshedLabel = useRelativeTime(lastFetched);
 
-  const [filter,         setFilter]         = useState('all');
-  const [typeFilter,     setTypeFilter]     = useState('');
+  const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('');
   const [weighingIntake, setWeighingIntake] = useState(null);
-  const [toast,          setToast]          = useState('');
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     dispatch(fetchIntakes({ force: false }));
@@ -46,10 +46,12 @@ const IntakesPage = () => {
 
 
   const visible = intakes.filter((i) => {
-    if (filter !== 'all' && i.material_status !== filter) return false;
+    if (filter !== 'all' && i.is_recycled !== (filter === 'recycled')) return false;
     if (typeFilter && i.material_type !== typeFilter) return false;
     return true;
   });
+
+  console.log(visible);
 
   return (
     <div className="manager-page">
@@ -80,7 +82,7 @@ const IntakesPage = () => {
             <button key={f} className={`filter-tab${filter === f ? ' filter-tab--active' : ''}`} onClick={() => setFilter(f)}>
               {FILTER_LABELS[f] || f}
               <span style={{ marginRight: '6px', opacity: 0.6, fontSize: '11px' }}>
-                ({f === 'all' ? intakes.length : intakes.filter((i) => i.material_status === f).length})
+                ({f === 'all' ? intakes.length : intakes.filter((i) => i.is_recycled === (f === 'recycled')).length})
               </span>
             </button>
           ))}
@@ -109,13 +111,13 @@ const IntakesPage = () => {
           {visible.map((i) => (
             <div key={i.id} className="intake-card">
               <div className="intake-card__top">
-                <div>
-                  <span className="intake-card__supplier">{i.supplier_name || '—'}</span>
-                  <span className="intake-card__date">{fmtDate(i.intake_date)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <span>{MATERIAL_TYPE_HE[i.material_type] || i.material_type}</span>
+                  <span className="intake-card__weight">{fmtKg(i.net_weight_kg)}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={`badge ${STATUS_BADGE[i.material_status] || 'badge--neutral'}`}>
-                    {MATERIAL_STATUS_HE[i.material_status] || i.material_status}
+                  <span className={`badge ${STATUS_BADGE[i.is_recycled] || 'badge--neutral'}`}>
+                    {i.is_recycled ? 'ממוחזר' : 'בתולי'}
                   </span>
                   {isManager && (
                     <RowActionsMenu items={[
@@ -125,19 +127,19 @@ const IntakesPage = () => {
                   )}
                 </div>
               </div>
-              <div className="intake-card__row">
-                <span className="tag">{MATERIAL_TYPE_HE[i.material_type] || i.material_type}</span>
-                <span className="intake-card__weight">{fmtKg(i.net_weight_kg)}</span>
-              </div>
               {i.eligible_weight_kg != null && (
-                <div className="intake-card__row">
-                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>משקל זכאי:</span>
-                  <span style={{ fontSize: '12px' }}>
+                <div className="intake-card__row" style={{ display: 'flex', justifyContent: 'start', gap: '8px' }}>
+                  <span className="intake-card__supplier">
+                    ספק:
+                  </span>
+                  {i.supplier_name || '—'}
+                  {/* <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>משקל זכאי:</span> */}
+                  {/* <span style={{ fontSize: '12px' }}>
                     {fmtKg(i.eligible_weight_kg)}
                     {parseFloat(i.eligible_input_percent) < 100 && (
                       <span style={{ fontSize: '11px', opacity: 0.65, marginRight: '3px' }}>({i.eligible_input_percent}%)</span>
                     )}
-                  </span>
+                  </span> */}
                 </div>
               )}
               {i.has_internal_weighing && (
@@ -147,8 +149,9 @@ const IntakesPage = () => {
                 </div>
               )}
               <div className="intake-card__meta">
-                <span>תעודה: <code>{i.delivery_note_number}</code></span>
-                {i.created_by_name && <span>הוזן ע"י: {i.created_by_name}</span>}
+                {/* <span>תעודה: <code>{i.delivery_note_number}</code></span> */}
+                {i.created_by_name && <span>נקלט ע"י: {i.created_by_name}</span>}
+                <span className="intake-card__date">בתאריך: {fmtDate(i.intake_date)}</span>
               </div>
             </div>
           ))}
