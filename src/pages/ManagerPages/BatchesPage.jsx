@@ -205,7 +205,7 @@ const BatchesPage = () => {
               <div className="mobile-card__header">
                 <div>
                   <span className="mobile-card__title">{b.product_name}</span>
-                  <code className="mobile-card__sku">{b.batch_code || shortId(b.id)} · {b.product_sku}</code>
+                  <code className="mobile-card__sku">{b.batch_code || shortId(b.id)}</code>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {b.is_active === false ? (

@@ -146,7 +146,7 @@ const ManagerDashboard = () => {
           <span className="kpi-card__value">{isLoading ? '…' : fmtKg(intakeWeightInPeriod)}</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-card__label">קרדיטים שהונפקו</span>
+          <span className="kpi-card__label">משקל משלוחים זכאי</span>
           <span className="kpi-card__value">
             {summaryLoading ? '…' : fmtKg(parseFloat(creditsSummary?.total_credits_kg || 0))}
           </span>

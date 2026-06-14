@@ -35,6 +35,20 @@
   }
 }
 
+// ── Factory Suspended Banner ───────────────────────────────────────────────────
+.factory-suspended-banner {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-6;
+  background: $color-error-bg;
+  border-bottom: 1px solid $color-error;
+  color: $color-error;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+}
+
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 .sidebar {
   width: 220px;

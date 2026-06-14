@@ -51,7 +51,6 @@ const IntakesPage = () => {
     return true;
   });
 
-  console.log(visible);
 
   return (
     <div className="manager-page">

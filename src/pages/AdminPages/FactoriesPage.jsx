@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Building2, Plus, X, CheckCircle, AlertCircle, MapPin, Users, Eye, RefreshCw, ChevronDown, Lock, Unlock, Flag, BarChart3 } from 'lucide-react';
+import { Building2, Plus, X, CheckCircle, AlertCircle, MapPin, Users, Eye, RefreshCw, Lock, Unlock, Flag, BarChart3, Loader2 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import { fetchFactories, createFactoryThunk, clearFactoriesError, suspendFactoryThunk, unsuspendFactoryThunk } from '../../store/slices/factoriesSlice';
+import { geocodeAddress } from '../../api/factories';
 import useRelativeTime from '../../hooks/useRelativeTime';
 
 const STATUS_BADGE = {
@@ -51,7 +52,6 @@ const FactoriesPage = () => {
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [showForm, setShowForm]   = useState(false);
-  const [showGeo, setShowGeo]         = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [suspendReason, setSuspendReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -59,6 +59,8 @@ const FactoriesPage = () => {
   const [saving, setSaving]       = useState(false);
   const [successMsg, setSuccess]  = useState('');
   const [formError, setFormError] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoState, setGeoState]   = useState(null);
 
   useEffect(() => {
     dispatch(fetchFactories());
@@ -72,8 +74,31 @@ const FactoriesPage = () => {
   }, [searchParams, setSearchParams]);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
     setFormError('');
+    if (name === 'address') setGeoState(null);
+  };
+
+  const handleGeocode = async () => {
+    if (!form.address.trim()) return;
+    setGeocoding(true);
+    setGeoState(null);
+    try {
+      const { data } = await geocodeAddress(form.address.trim());
+      const { lat, lng, formatted_address } = data.data;
+      setGeoState({ lat, lng, formatted_address });
+      setForm((p) => ({
+        ...p,
+        geofence_lat: String(lat),
+        geofence_lng: String(lng),
+        geofence_radius_meters: p.geofence_radius_meters || '2000',
+      }));
+    } catch (err) {
+      setGeoState({ error: err.response?.data?.error?.message || 'לא ניתן לאתר את הכתובת. נסה לפרט יותר.' });
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -160,6 +185,7 @@ const FactoriesPage = () => {
     setShowForm(false);
     setForm(EMPTY_FORM);
     setFormError('');
+    setGeoState(null);
     dispatch(clearFactoriesError());
   };
 
@@ -255,45 +281,42 @@ const FactoriesPage = () => {
                   />
                 </div>
 
-                <button
-                  type="button"
-                  className="form-section-label form-section-label--toggle"
-                  onClick={() => setShowGeo((v) => !v)}
-                >
-                  <MapPin size={14} />
-                  מיקום (אופציונלי)
-                  <ChevronDown
-                    size={14}
-                    className={`geo-chevron${showGeo ? ' geo-chevron--open' : ''}`}
-                  />
-                </button>
+                <div className="form-field">
+                  <button
+                    type="button"
+                    className="btn-geocode"
+                    onClick={handleGeocode}
+                    disabled={!form.address.trim() || geocoding}
+                  >
+                    {geocoding
+                      ? <><Loader2 size={14} className="spin" /> מאתר מיקום...</>
+                      : <><MapPin size={14} /> אתר מיקום אוטומטית</>}
+                  </button>
+                  {geoState?.error && (
+                    <span className="geo-result geo-result--error">
+                      <AlertCircle size={13} />
+                      {geoState.error}
+                    </span>
+                  )}
+                  {geoState?.lat && (
+                    <span className="geo-result geo-result--success">
+                      <CheckCircle size={13} />
+                      {geoState.formatted_address}
+                    </span>
+                  )}
+                </div>
 
-                {showGeo && <div>
+                {geoState?.lat && (
                   <div className="form-field">
-                    <label htmlFor="geofence_lat">קו רוחב</label>
-                    <input
-                      id="geofence_lat" name="geofence_lat" type="number" step="any"
-                      placeholder="32.0853"
-                      value={form.geofence_lat} onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label htmlFor="geofence_lng">קו אורך</label>
-                    <input
-                      id="geofence_lng" name="geofence_lng" type="number" step="any"
-                      placeholder="34.7818"
-                      value={form.geofence_lng} onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label htmlFor="geofence_radius_meters">רדיוס (מטרים)</label>
+                    <label htmlFor="geofence_radius_meters">רדיוס גאופנס (מטרים)</label>
                     <input
                       id="geofence_radius_meters" name="geofence_radius_meters" type="number"
-                      placeholder="500"
+                      min="100" max="50000"
                       value={form.geofence_radius_meters} onChange={handleChange}
                     />
+                    <span className="field-hint">ברירת מחדל: 2,000 מטר (2 ק"מ)</span>
                   </div>
-                </div>}
+                )}
               </div>
 
               <div className="form-col-divider" />
@@ -351,7 +374,20 @@ const FactoriesPage = () => {
               {/* <button type="button" className="btn-ghost" onClick={handleCloseForm} disabled={saving}>
                 ביטול
               </button> */}
-              <button type="submit" className="btn-primary" disabled={saving}>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={
+                  saving ||
+                  !geoState?.lat ||
+                  !form.name.trim() ||
+                  !form.company_id_number.trim() ||
+                  !form.address.trim() ||
+                  !form.manager_name.trim() ||
+                  !form.manager_email.trim() ||
+                  !form.manager_local.trim()
+                }
+              >
                 {saving ? '...יוצר' : 'הוספת מפעל'}
               </button>
             </div>

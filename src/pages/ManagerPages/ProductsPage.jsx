@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Plus, X, AlertCircle, RefreshCw, Pencil, Trash2 } from 'lucide-react';
+import { Box, Plus, X, AlertCircle, RefreshCw, Pencil, Trash2, Upload, FileCheck, Loader2 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
+import { uploadDocument, listDocuments } from '../../api/documents';
 import {
   fetchProducts, createProductThunk, updateProductThunk,
   deactivateProductThunk, reactivateProductThunk, clearProductsError,
@@ -31,6 +32,9 @@ const ProductsPage = () => {
   const { list: products, loading, error, lastFetched } = useSelector((s) => s.products);
   const refreshedLabel = useRelativeTime(lastFetched);
 
+  const specFileRef = useRef(null);
+  const labFileRef  = useRef(null);
+
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -39,6 +43,14 @@ const ProductsPage = () => {
   const [formError, setFormError] = useState('');
   const [filter, setFilter] = useState('active');
   const [recipe, setRecipe] = useState([{ ...EMPTY_RECIPE_ROW }]);
+
+  const [specDocId, setSpecDocId]       = useState(null);
+  const [specFileName, setSpecFileName] = useState('');
+  const [specUploading, setSpecUploading] = useState(false);
+  const [labDocId, setLabDocId]         = useState(null);
+  const [labFileName, setLabFileName]   = useState('');
+  const [labUploading, setLabUploading] = useState(false);
+  const [editingDocs, setEditingDocs]   = useState({ spec: null, lab: null, loading: false });
 
   useEffect(() => { dispatch(fetchProducts()); }, [dispatch]);
 
@@ -60,7 +72,7 @@ const ProductsPage = () => {
     setFormError('');
   };
 
-  const handleEdit = (p) => {
+  const handleEdit = async (p) => {
     setEditingId(p.id);
     setForm({
       name: p.name,
@@ -75,12 +87,25 @@ const ProductsPage = () => {
         : [{ ...EMPTY_RECIPE_ROW }]
     );
     setShowForm(true);
+    setEditingDocs({ spec: null, lab: null, loading: true });
+    try {
+      const { data } = await listDocuments({ related_entity_type: 'product', related_entity_id: p.id });
+      const docs = data?.data?.documents || [];
+      setEditingDocs({
+        spec: docs.find((d) => d.document_type === 'product_spec') || null,
+        lab:  docs.find((d) => d.document_type === 'lab_test')     || null,
+        loading: false,
+      });
+    } catch {
+      setEditingDocs({ spec: null, lab: null, loading: false });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { setFormError('יש להזין שם תוצ"ג.'); return; }
     if (form.name.trim().length > 30) { setFormError('שם תוצ"ג יכול להכיל עד 30 תווים.'); return; }
+    if (!editingId && !specDocId) { setFormError('יש להעלות מפרט מוצר לפני שמירה.'); return; }
     // if (!form.sku.trim()) { setFormError('יש להזין מקטלג (SKU).'); return; }
 
     const validRecipe = recipe.filter((r) => r.material_type && r.percent);
@@ -101,6 +126,8 @@ const ProductsPage = () => {
       material_recipe: validRecipe.map((r) => ({ material_type: r.material_type, is_recycled: r.is_recycled, percent: parseFloat(r.percent) })),
       eligible_percent: computedEligible,
       is_active: form.is_active,
+      spec_document_ids: specDocId ? [specDocId] : [],
+      lab_document_ids:  labDocId  ? [labDocId]  : [],
     };
 
     setSaving(true);
@@ -124,7 +151,47 @@ const ProductsPage = () => {
     if (thunk.fulfilled.match(result)) setToast(product.is_active ? `תוצ"ג "${product.name}" הושבת.` : `תוצ"ג "${product.name}" הופעל מחדש.`);
   };
 
-  const handleClose = () => { setShowForm(false); setEditingId(null); setForm(EMPTY_FORM); setRecipe([{ ...EMPTY_RECIPE_ROW }]); setFormError(''); dispatch(clearProductsError()); };
+  const handleSpecFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (specFileRef.current) specFileRef.current.value = '';
+    if (!file) return;
+    setSpecUploading(true);
+    setFormError('');
+    try {
+      const res = await uploadDocument(file, { document_type: 'product_spec' });
+      setSpecDocId(res.data?.data?.document?.id || null);
+      setSpecFileName(file.name);
+    } catch {
+      setFormError('העלאת מפרט המוצר נכשלה. נסה שנית.');
+    } finally {
+      setSpecUploading(false);
+    }
+  };
+
+  const handleLabFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (labFileRef.current) labFileRef.current.value = '';
+    if (!file) return;
+    setLabUploading(true);
+    setFormError('');
+    try {
+      const res = await uploadDocument(file, { document_type: 'lab_test' });
+      setLabDocId(res.data?.data?.document?.id || null);
+      setLabFileName(file.name);
+    } catch {
+      setFormError('העלאת בדיקות המעבדה נכשלה. נסה שנית.');
+    } finally {
+      setLabUploading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setShowForm(false); setEditingId(null); setForm(EMPTY_FORM); setRecipe([{ ...EMPTY_RECIPE_ROW }]); setFormError('');
+    setSpecDocId(null); setSpecFileName(''); setSpecUploading(false);
+    setLabDocId(null); setLabFileName(''); setLabUploading(false);
+    setEditingDocs({ spec: null, lab: null, loading: false });
+    dispatch(clearProductsError());
+  };
 
   const recipeSum = recipe.reduce((s, r) => s + (parseFloat(r.percent) || 0), 0);
   const eligiblePct = Math.abs(recipeSum - 100) < 0.01
@@ -238,6 +305,98 @@ const ProductsPage = () => {
               <textarea name="description" value={form.description} onChange={handleChange} placeholder="תיאור אופציונלי למוצר..." rows={2} maxLength={200} />
             </div>
 
+            {editingId && (
+              <div className="form-field">
+                <label>מסמכים מצורפים</label>
+                {editingDocs.loading ? (
+                  <div className="file-upload-indicator file-upload-indicator--loading">
+                    <Loader2 size={15} className="spin" />
+                    <span>טוען מסמכים…</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className={`file-upload-indicator ${editingDocs.spec ? 'file-upload-indicator--done' : 'file-upload-indicator--empty'}`}>
+                      <FileCheck size={14} />
+                      <span className="file-upload-indicator__label">מפרט מוצר:</span>
+                      <span className="file-upload-indicator__name">
+                        {editingDocs.spec ? (editingDocs.spec.file_name || 'קובץ מצורף') : 'לא הועלה'}
+                      </span>
+                    </div>
+                    <div className={`file-upload-indicator ${editingDocs.lab ? 'file-upload-indicator--done' : 'file-upload-indicator--empty'}`}>
+                      <FileCheck size={14} />
+                      <span className="file-upload-indicator__label">בדיקות מעבדה:</span>
+                      <span className="file-upload-indicator__name">
+                        {editingDocs.lab ? (editingDocs.lab.file_name || 'קובץ מצורף') : 'לא הועלו'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!editingId && (
+              <>
+                <div className="form-field">
+                  <label>מפרט מוצר <span className="required">*</span></label>
+                  <input
+                    ref={specFileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleSpecFile}
+                  />
+                  {specUploading ? (
+                    <div className="file-upload-indicator file-upload-indicator--loading">
+                      <Loader2 size={15} className="spin" />
+                      <span>מעלה קובץ…</span>
+                    </div>
+                  ) : specDocId ? (
+                    <div className="file-upload-indicator file-upload-indicator--done">
+                      <FileCheck size={15} />
+                      <span className="file-upload-indicator__name">{specFileName}</span>
+                      <button type="button" className="icon-btn" onClick={() => { setSpecDocId(null); setSpecFileName(''); }}>
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className="file-upload-btn" onClick={() => specFileRef.current?.click()}>
+                      <Upload size={15} />
+                      <span>העלאת מפרט מוצר (PDF / תמונה)</span>
+                    </button>
+                  )}
+                </div>
+                <div className="form-field">
+                  <label>בדיקות מעבדה <span className="form-hint">(אופציונלי)</span></label>
+                  <input
+                    ref={labFileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleLabFile}
+                  />
+                  {labUploading ? (
+                    <div className="file-upload-indicator file-upload-indicator--loading">
+                      <Loader2 size={15} className="spin" />
+                      <span>מעלה קובץ…</span>
+                    </div>
+                  ) : labDocId ? (
+                    <div className="file-upload-indicator file-upload-indicator--done">
+                      <FileCheck size={15} />
+                      <span className="file-upload-indicator__name">{labFileName}</span>
+                      <button type="button" className="icon-btn" onClick={() => { setLabDocId(null); setLabFileName(''); }}>
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className="file-upload-btn" onClick={() => labFileRef.current?.click()}>
+                      <Upload size={15} />
+                      <span>העלאת בדיקות מעבדה (PDF / תמונה)</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
             <div className="form-field">
               <label>סטטוס</label>
               <button
@@ -254,7 +413,7 @@ const ProductsPage = () => {
             </div>
             <div className="form-actions">
               <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>ביטול</button>
-              <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'שומר…' : editingId ? 'שמור שינויים' : 'צור תוצ"ג'}</button>
+              <button type="submit" className="btn-primary" disabled={saving || specUploading || labUploading || (!editingId && !specDocId)}>{saving ? 'שומר…' : editingId ? 'שמור שינויים' : 'צור תוצ"ג'}</button>
             </div>
           </form>
         </div>

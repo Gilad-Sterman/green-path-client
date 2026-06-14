@@ -108,14 +108,31 @@ const NewIntakePage = () => {
 
   const activeSuppliers = suppliers.filter((s) => s.is_active);
 
+  const selectedSupplier = activeSuppliers.find((s) => s.id === form.supplier_id) || null;
+  const availableMaterialTypes = selectedSupplier?.allowed_material_types?.length
+    ? MATERIAL_TYPES.filter((t) => selectedSupplier.allowed_material_types.includes(t))
+    : MATERIAL_TYPES;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
     setError('');
-    if (name === 'supplier_id') setOcrSupplierHint('');
     if (ocrFields?.[name]) {
       setOcrFields((prev) => { const next = { ...prev }; delete next[name]; return next; });
     }
+    if (name === 'supplier_id') {
+      setOcrSupplierHint('');
+      const newSupplier = activeSuppliers.find((s) => s.id === value);
+      const newAllowed = newSupplier?.allowed_material_types?.length
+        ? newSupplier.allowed_material_types
+        : MATERIAL_TYPES;
+      setForm((p) => ({
+        ...p,
+        supplier_id: value,
+        material_type: newAllowed.includes(p.material_type) ? p.material_type : '',
+      }));
+      return;
+    }
+    setForm((p) => ({ ...p, [name]: value }));
   };
 
   const handleFileSelect = async (e) => {
@@ -175,8 +192,14 @@ const NewIntakePage = () => {
       if (extras.material_hint) {
         const matched = matchMaterialType(extras.material_hint);
         if (matched) {
-          filled.material_type = { value: matched, confidence: 0.80, fill: 'auto' };
-          setForm((p) => ({ ...p, material_type: matched }));
+          const ocrSupplier = activeSuppliers.find((s) => s.id === form.supplier_id);
+          const allowedForOcr = ocrSupplier?.allowed_material_types?.length
+            ? ocrSupplier.allowed_material_types
+            : MATERIAL_TYPES;
+          if (allowedForOcr.includes(matched)) {
+            filled.material_type = { value: matched, confidence: 0.80, fill: 'auto' };
+            setForm((p) => ({ ...p, material_type: matched }));
+          }
         }
       }
 
@@ -440,7 +463,7 @@ const NewIntakePage = () => {
             </label>
             <select name="material_type" value={form.material_type} onChange={handleChange}>
               <option value="">— בחר סוג —</option>
-              {MATERIAL_TYPES.map((t) => <option key={t} value={t}>{MATERIAL_TYPE_HE[t] || t}</option>)}
+              {availableMaterialTypes.map((t) => <option key={t} value={t}>{MATERIAL_TYPE_HE[t] || t}</option>)}
             </select>
           </div>
           <div className="employee-form__field">
