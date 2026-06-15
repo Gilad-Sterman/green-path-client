@@ -50,4 +50,6 @@
   &--neutral { background: #f0f0f0; color: #555; }
   &--blue    { background: #e3f2fd; color: #1565c0; }
   &--warn    { background: #fff3e0; color: $color-warning; }
+  &--success { background: #e8f5e9; color: #2e7d32; }
+  &--error   { background: #ffebee; color: #c62828; }
 }

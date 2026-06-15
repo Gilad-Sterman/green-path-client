@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { X, AlertCircle, Plus, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { X, AlertCircle, Plus, Trash2, Loader2 } from 'lucide-react';
 import { createBatchThunk } from '../../store/slices/batchesSlice';
 import { generateBatchCode, getBatchSources } from '../../api/batches';
 import DocumentUploader from '../../components/DocumentUploader';
@@ -12,7 +12,7 @@ const fmtKg = (n) =>
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
-const EMPTY_SOURCE = { source_id: '', weight_kg: '' };
+const EMPTY_SOURCE = { source_id: '', weight_kg: '', source_type: 'intake' };
 
 const BatchForm = ({ products = [], onClose, onSuccess }) => {
   const dispatch = useDispatch();
@@ -23,7 +23,6 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
   const [autoCode,            setAutoCode]            = useState('');
   const [codeManuallyEdited,  setCodeManuallyEdited]  = useState(false);
   const [codeLoading,         setCodeLoading]         = useState(false);
-  const [isConsolidation,     setIsConsolidation]     = useState(false);
   const [sources,             setSources]             = useState([{ ...EMPTY_SOURCE }]);
   const [availableIntakes,    setAvailableIntakes]    = useState([]);
   const [availableBatches,    setAvailableBatches]    = useState([]);
@@ -77,7 +76,6 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
     return () => { cancelled = true; };
   }, [productId]);
 
-  const availableOptions = isConsolidation ? availableBatches : availableIntakes;
   const usedSourceIds    = sources.map((s) => s.source_id).filter(Boolean);
   const totalWeight      = sources.reduce((sum, s) => sum + (parseFloat(s.weight_kg) || 0), 0);
   const wasCodeEdited    = codeManuallyEdited && batchCode.trim() !== autoCode;
@@ -92,11 +90,6 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
   const updateSource = (idx, field, val) => {
     setSources((p) => p.map((s, i) => (i === idx ? { ...s, [field]: val } : s)));
     setFormError('');
-  };
-
-  const handleToggleConsolidation = () => {
-    setIsConsolidation((p) => !p);
-    setSources([{ ...EMPTY_SOURCE }]);
   };
 
   const handleSubmit = async (e) => {
@@ -124,7 +117,7 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
       notes:        notes.trim() || undefined,
       document_ids: docIds.filter(Boolean),
       sources:      validSources.map((s) => ({
-        source_type: isConsolidation ? 'batch' : 'intake',
+        source_type: s.source_type,
         source_id:   s.source_id,
         weight_kg:   parseFloat(s.weight_kg),
       })),
@@ -142,7 +135,6 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
   };
 
   const activeProducts = products.filter((p) => p.is_active);
-  const sourceLabel    = isConsolidation ? 'אצווה' : 'קליטת חומר גלם';
 
   return (
     <div className="form-card">
@@ -210,21 +202,6 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
           </select>
         </div>
 
-        {/* Consolidation toggle */}
-        {productId && (
-          <div className="form-field form-field--inline">
-            <span className="field-label">סוג מקורות האצווה:</span>
-            <button
-              type="button"
-              className={`toggle-btn${isConsolidation ? ' toggle-btn--on' : ''}`}
-              onClick={handleToggleConsolidation}
-            >
-              {isConsolidation ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-              {isConsolidation ? 'איחוד אצוות' : 'חומרי גלם'}
-            </button>
-          </div>
-        )}
-
         {/* Source rows */}
         {productId && (
           <div className="components-section">
@@ -250,24 +227,37 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
             )}
 
             {!sourcesLoading && sources.map((src, idx) => {
-              const selected       = availableOptions.find((o) => o.source_id === src.source_id);
-              const filteredOptions = availableOptions.filter(
+              const rowOptions      = src.source_type === 'batch' ? availableBatches : availableIntakes;
+              const selected        = rowOptions.find((o) => o.source_id === src.source_id);
+              const filteredOptions = rowOptions.filter(
                 (o) => !usedSourceIds.includes(o.source_id) || o.source_id === src.source_id
               );
               return (
                 <div key={idx} className="component-row">
+                  <div className="component-row__type">
+                    <select
+                      value={src.source_type}
+                      onChange={(e) => {
+                        const t = e.target.value;
+                        setSources((p) => p.map((s, i) => i === idx ? { ...s, source_type: t, source_id: '' } : s));
+                      }}
+                    >
+                      <option value="intake">חומר גלם</option>
+                      <option value="batch">אצווה</option>
+                    </select>
+                  </div>
                   <div className="component-row__select">
                     <select
                       value={src.source_id}
                       onChange={(e) => updateSource(idx, 'source_id', e.target.value)}
                     >
-                      <option value="">— בחר {sourceLabel} —</option>
+                      <option value="">— בחר {src.source_type === 'batch' ? 'אצווה' : 'קליטת חומר גלם'} —</option>
                       {filteredOptions.map((o) => (
                         <option key={o.source_id} value={o.source_id}>
                           {o.label}
-                          {!isConsolidation && o.material_type ? ` · ${o.material_type}` : ''}
-                          {!isConsolidation && o.supplier_name ? ` · ${o.supplier_name}` : ''}
-                          {isConsolidation  && o.product_name  ? ` (${o.product_name})` : ''}
+                          {src.source_type === 'intake' && o.material_type ? ` · ${o.material_type}` : ''}
+                          {src.source_type === 'intake' && o.supplier_name ? ` · ${o.supplier_name}` : ''}
+                          {src.source_type === 'batch'  && o.product_name  ? ` (${o.product_name})` : ''}
                           {' · יתרה: '}{fmtKg(o.remaining_kg)}
                         </option>
                       ))}

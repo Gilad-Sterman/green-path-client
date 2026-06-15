@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getFactories, getFactory, createFactory, suspendFactory, unsuspendFactory } from '../../api/factories';
+import { getFactories, getFactory, createFactory, updateFactory, suspendFactory, unsuspendFactory } from '../../api/factories';
 import { cache, CACHE_KEYS } from '../cache';
 
 export const fetchFactories = createAsyncThunk(
@@ -53,6 +53,18 @@ export const createFactoryThunk = createAsyncThunk(
       return data.data.factory; // service returns { factory, manager, factory_id, admin_user_id }
     } catch (err) {
       return rejectWithValue(err.response?.data?.error?.message || 'Failed to create factory');
+    }
+  }
+);
+
+export const updateFactoryThunk = createAsyncThunk(
+  'factories/update',
+  async ({ id, body }, { rejectWithValue }) => {
+    try {
+      const { data } = await updateFactory(id, body);
+      return data.data.factory;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error?.message || 'Failed to update factory');
     }
   }
 );
@@ -111,6 +123,10 @@ const factoriesSlice = createSlice({
       .addCase(createFactoryThunk.fulfilled, (state, action) => {
         if (action.payload) state.list.unshift(action.payload);
         cache.invalidate(CACHE_KEYS.FACTORIES);
+      })
+      .addCase(updateFactoryThunk.fulfilled, (state, action) => {
+        const idx = state.list.findIndex((f) => f.id === action.payload?.id);
+        if (idx !== -1) state.list[idx] = { ...state.list[idx], ...action.payload };
       })
       .addCase(suspendFactoryThunk.fulfilled, (state, action) => {
         const idx = state.list.findIndex((f) => f.id === action.payload?.id);

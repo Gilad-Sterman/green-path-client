@@ -153,6 +153,7 @@ const FactoriesPage = () => {
       setSuccess(`המפעל "${form.name}" נוצר בהצלחה.`);
       setForm(EMPTY_FORM);
       setShowForm(false);
+      dispatch(fetchFactories({ force: true }));
       setTimeout(() => setSuccess(''), 4000);
     } else {
       setFormError(result.payload || 'שגיאה ביצירת המפעל.');
@@ -459,7 +460,7 @@ const FactoriesPage = () => {
                       },
                       { label: 'צפייה בדגלים',   icon: <Flag size={14} />,     onClick: () => navigate(`/admin/flags?factory_id=${f.id}`) },
                       { label: 'דו"ח קרדיטים',   icon: <BarChart3 size={14} />, onClick: () => navigate(`/admin/reports?factory_id=${f.id}`) },
-                      { label: 'צפייה בפרטים',   icon: <Eye size={14} />,      onClick: () => navigate(`/admin/factories/${f.id}`) },
+                      { label: 'פרטים ועריכה',   icon: <Eye size={14} />,      onClick: () => navigate(`/admin/factories/${f.id}`) },
                     ].filter(Boolean)} />
                   </td>
                 </tr>

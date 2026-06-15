@@ -362,6 +362,25 @@
   color: $color-text;
 }
 
+// ── Factory audit / creation metadata block ──────────────────────────────────
+.factory-audit-block {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-2 $space-3;
+  padding: $space-3 $space-4;
+  background: $color-surface;
+  border: 1px dashed $color-border;
+  border-radius: $radius-md;
+  margin-bottom: $space-5;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+
+  strong { color: $color-text; }
+
+  &__sep { color: $color-border; }
+}
+
 // ── Section header (title + action button) ────────────────────────────────────
 .section-header {
   @include flex-between;

@@ -3,10 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   ArrowLeft, Building2, MapPin, Users, Plus, X,
-  CheckCircle, AlertCircle, UserCheck, UserX, RefreshCw,
+  CheckCircle, AlertCircle, UserCheck, UserX, RefreshCw, Pencil,
 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
-import { fetchFactory } from '../../store/slices/factoriesSlice';
+import { fetchFactory, updateFactoryThunk } from '../../store/slices/factoriesSlice';
 import { fetchUsers, createUserThunk, deactivateUserThunk, reactivateUserThunk } from '../../store/slices/usersSlice';
 import useRelativeTime from '../../hooks/useRelativeTime';
 
@@ -15,6 +15,9 @@ const ROLE_BADGE = {
   employee:       'badge--green',
   internal_admin: 'badge--admin',
 };
+
+const ROLE_HE = { manager: 'מנהל', employee: 'עובד', internal_admin: 'אדמין' };
+const STATUS_HE = { active: 'פעיל', suspended: 'מושהה', inactive: 'לא פעיל' };
 
 const COUNTRY_CODES = [
   { code: '+972', label: '🇮🇱 +972', minLen: 9 },
@@ -31,11 +34,15 @@ const FactoryDetailPage = () => {
   const { list: users, loading: usersLoading, lastFetched }   = useSelector((s) => s.users);
   const refreshedLabel = useRelativeTime(lastFetched);
 
-  const [showForm, setShowForm]   = useState(false);
-  const [form, setForm]           = useState(EMPTY_USER);
-  const [saving, setSaving]       = useState(false);
-  const [formError, setFormError] = useState('');
-  const [successMsg, setSuccess]  = useState('');
+  const [showForm, setShowForm]       = useState(false);
+  const [form, setForm]               = useState(EMPTY_USER);
+  const [saving, setSaving]           = useState(false);
+  const [formError, setFormError]     = useState('');
+  const [successMsg, setSuccess]      = useState('');
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editForm, setEditForm]       = useState({ name: '', company_id_number: '', address: '', geofence_radius_meters: '' });
+  const [editSaving, setEditSaving]   = useState(false);
+  const [editError, setEditError]     = useState('');
 
   useEffect(() => {
     dispatch(fetchFactory(id));
@@ -51,13 +58,13 @@ const FactoryDetailPage = () => {
     e.preventDefault();
     setFormError('');
     if (!form.full_name.trim() || !form.local.trim()) {
-      setFormError('Name and phone number are required.');
+      setFormError('שם ומספר טלפון הם שדות חובה.');
       return;
     }
     const cc      = COUNTRY_CODES.find((c) => c.code === form.country);
     const stripped = form.local.replace(/^0/, '');
     if (stripped.length < (cc?.minLen ?? 7)) {
-      setFormError(`Phone must be at least ${cc?.minLen ?? 7} digits for ${form.country}.`);
+      setFormError(`מספר הטלפון חייב להכיל לפחות ${cc?.minLen ?? 7} ספרות.`);
       return;
     }
     setSaving(true);
@@ -69,12 +76,45 @@ const FactoryDetailPage = () => {
     }));
     setSaving(false);
     if (createUserThunk.fulfilled.match(result)) {
-      setSuccess(`${form.role === 'manager' ? 'Manager' : 'Employee'} "${form.full_name}" added.`);
+      setSuccess(`${form.role === 'manager' ? 'מנהל' : 'עובד'} "${form.full_name}" נוסף בהצלחה.`);
       setForm(EMPTY_USER);
       setShowForm(false);
       setTimeout(() => setSuccess(''), 4000);
     } else {
-      setFormError(result.payload || 'Failed to add user.');
+      setFormError(result.payload || 'הוספת המשתמש נכשלה.');
+    }
+  };
+
+  const openEditForm = () => {
+    setEditForm({
+      name:                   factory.name || '',
+      company_id_number:      factory.company_id_number || '',
+      address:                factory.address || '',
+      geofence_radius_meters: factory.geofence_radius_meters ? String(factory.geofence_radius_meters) : '',
+    });
+    setEditError('');
+    setShowEditForm(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.name.trim()) { setEditError('שם מפעל הוא שדה חובה.'); return; }
+    setEditSaving(true);
+    const body = {
+      name:             editForm.name.trim(),
+      company_id_number: editForm.company_id_number.trim() || undefined,
+      address:          editForm.address.trim() || undefined,
+    };
+    if (editForm.geofence_radius_meters) body.geofence_radius_meters = parseFloat(editForm.geofence_radius_meters);
+    const result = await dispatch(updateFactoryThunk({ id, body }));
+    setEditSaving(false);
+    if (updateFactoryThunk.fulfilled.match(result)) {
+      dispatch(fetchFactory({ id, force: true }));
+      setSuccess('פרטי המפעל עודכנו בהצלחה.');
+      setShowEditForm(false);
+      setTimeout(() => setSuccess(''), 4000);
+    } else {
+      setEditError(result.payload || 'שגיאה בעדכון המפעל.');
     }
   };
 
@@ -86,8 +126,8 @@ const FactoryDetailPage = () => {
     }
   };
 
-  if (factoryLoading) return <div className="loading-row">Loading factory…</div>;
-  if (!factory) return <div className="loading-row">Factory not found.</div>;
+  if (factoryLoading) return <div className="loading-row">טוען פרטי מפעל…</div>;
+  if (!factory) return <div className="loading-row">המפעל לא נמצא.</div>;
 
   const managers   = users.filter((u) => u.role === 'manager');
   const employees  = users.filter((u) => u.role === 'employee');
@@ -96,20 +136,24 @@ const FactoryDetailPage = () => {
     <div className="admin-page">
       <Link to="/admin/factories" className="back-link">
         <ArrowLeft size={16} />
-        Back to Factories
+        חזרה למפעלים
       </Link>
 
       <div className="admin-page__header" style={{ marginTop: '16px' }}>
         <div>
           <h1>{factory.name}</h1>
-          <p className="page-subtitle">Company ID: {factory.company_id_number}</p>
+          <p className="page-subtitle">מ.ח.: {factory.company_id_number}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button className="btn-ghost btn-ghost--sm" onClick={openEditForm}>
+            <Pencil size={14} />
+            ערוך פרטים
+          </button>
           <div className="refresh-group">
             {refreshedLabel && <span className="last-refreshed">{refreshedLabel}</span>}
             <button
               className="btn-ghost btn-ghost--icon"
-              title="Refresh"
+              title="רענן"
               disabled={factoryLoading || usersLoading}
               onClick={() => {
                 dispatch(fetchFactory({ id, force: true }));
@@ -120,7 +164,7 @@ const FactoryDetailPage = () => {
             </button>
           </div>
           <span className={`badge ${factory.status === 'active' ? 'badge--green' : 'badge--warn'}`}>
-            {factory.status}
+            {STATUS_HE[factory.status] || factory.status}
           </span>
         </div>
       </div>
@@ -131,11 +175,64 @@ const FactoryDetailPage = () => {
         </div>
       )}
 
+      {showEditForm && (
+        <div className="form-card" style={{ marginBottom: '24px' }}>
+          <div className="form-card__header">
+            <h3>עריכת פרטי מפעל</h3>
+            <button className="icon-btn" onClick={() => setShowEditForm(false)}><X size={18} /></button>
+          </div>
+          <form onSubmit={handleEditSubmit} className="factory-form">
+            {editError && <div className="alert alert--error"><AlertCircle size={15} /> {editError}</div>}
+            <div className="form-field">
+              <label>שם מפעל <span className="required">*</span></label>
+              <input
+                value={editForm.name}
+                onChange={(e) => { setEditForm((p) => ({ ...p, name: e.target.value })); setEditError(''); }}
+                placeholder='לדוגמה: מיחזור ירוק בע"מ'
+              />
+            </div>
+            <div className="form-field">
+              <label>מזהה (ח.פ.)</label>
+              <input
+                value={editForm.company_id_number}
+                onChange={(e) => setEditForm((p) => ({ ...p, company_id_number: e.target.value }))}
+                placeholder="לדוגמה: 515234567"
+              />
+            </div>
+            <div className="form-field">
+              <label>כתובת</label>
+              <input
+                value={editForm.address}
+                onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))}
+                placeholder="לדוגמה: 12 אזור תעשייה, תל אביב"
+              />
+            </div>
+            {factory.geofence_center && (
+              <div className="form-field">
+                <label>רדיוס גאופנס (מטרים)</label>
+                <input
+                  type="number" min="100" max="50000"
+                  value={editForm.geofence_radius_meters}
+                  onChange={(e) => setEditForm((p) => ({ ...p, geofence_radius_meters: e.target.value }))}
+                />
+                <span className="field-hint">עכשווית: {factory.geofence_radius_meters ?? 2000}מ</span>
+              </div>
+            )}
+            <div className="form-actions">
+              <button type="button" className="btn-ghost" onClick={() => setShowEditForm(false)} disabled={editSaving}>ביטול</button>
+              <button type="submit" className="btn-primary" disabled={editSaving || !editForm.name.trim()}>
+                {editSaving ? 'שומר…' : 'שמור שינויים'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="detail-cards">
         <div className="detail-card">
           <div className="detail-card__icon"><Building2 size={18} /></div>
           <div>
-            <p className="detail-card__label">Address</p>
+            <p className="detail-card__label">כתובת</p>
             <p className="detail-card__value">{factory.address}</p>
           </div>
         </div>
@@ -143,7 +240,7 @@ const FactoryDetailPage = () => {
         <div className="detail-card">
           <div className="detail-card__icon"><Users size={18} /></div>
           <div>
-            <p className="detail-card__label">Active Users</p>
+            <p className="detail-card__label">משתמשים פעילים</p>
             <p className="detail-card__value">{factory.active_user_count ?? 0}</p>
           </div>
         </div>
@@ -152,7 +249,7 @@ const FactoryDetailPage = () => {
           <div className="detail-card">
             <div className="detail-card__icon"><MapPin size={18} /></div>
             <div>
-              <p className="detail-card__label">Geofence</p>
+              <p className="detail-card__label">גאופנס</p>
               <p className="detail-card__value">
                 {factory.geofence_center.lat}, {factory.geofence_center.lng}
                 {factory.geofence_radius_meters && ` · ${factory.geofence_radius_meters}m`}
@@ -164,7 +261,7 @@ const FactoryDetailPage = () => {
         <div className="detail-card">
           <div className="detail-card__icon"><CheckCircle size={18} /></div>
           <div>
-            <p className="detail-card__label">Created</p>
+            <p className="detail-card__label">נוצר בתאריך</p>
             <p className="detail-card__value">
               {new Date(factory.created_at).toLocaleDateString()}
             </p>
@@ -172,17 +269,27 @@ const FactoryDetailPage = () => {
         </div>
       </div>
 
+      <div className="factory-audit-block">
+        <span className="factory-audit-block__item">
+          <strong>נוצר על ידי:</strong> {factory.creator_name || '—'}
+        </span>
+        <span className="factory-audit-block__sep">·</span>
+        <span className="factory-audit-block__item">
+          <strong>בתאריך ושעה:</strong> {new Date(factory.created_at).toLocaleString('he-IL')}
+        </span>
+      </div>
+
       <div className="section-header">
-        <h2>Team</h2>
+        <h2>צוות</h2>
         <button className="btn-primary btn-primary--sm" onClick={() => setShowForm(true)}>
-          <Plus size={15} /> Add User
+          <Plus size={15} /> הוסף משתמש
         </button>
       </div>
 
       {showForm && (
         <div className="form-card">
           <div className="form-card__header">
-            <h3>Add Team Member</h3>
+            <h3>הוספת איש צוות</h3>
             <button className="icon-btn" onClick={() => { setShowForm(false); setForm(EMPTY_USER); setFormError(''); }}>
               <X size={18} />
             </button>
@@ -191,20 +298,20 @@ const FactoryDetailPage = () => {
             {formError && <div className="alert alert--error"><AlertCircle size={15} /> {formError}</div>}
             <div className="form-row">
               <div className="form-field">
-                <label>Full name <span className="required">*</span></label>
-                <input name="full_name" type="text" placeholder="e.g. Sarah Levi"
+                <label>שם מלא <span className="required">*</span></label>
+                <input name="full_name" type="text" placeholder="לדוגמה: שרה לוי"
                   value={form.full_name} onChange={handleChange} />
               </div>
               <div className="form-field">
-                <label>Role <span className="required">*</span></label>
+                <label>תפקיד <span className="required">*</span></label>
                 <select name="role" value={form.role} onChange={handleChange}>
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
+                  <option value="employee">עובד</option>
+                  <option value="manager">מנהל</option>
                 </select>
               </div>
             </div>
             <div className="form-field">
-              <label>Phone number <span className="required">*</span></label>
+              <label>מספר טלפון <span className="required">*</span></label>
               <div className="phone-input-wrap">
                 <select className="country-select" value={form.country}
                   onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))}>
@@ -216,33 +323,33 @@ const FactoryDetailPage = () => {
               </div>
             </div>
             <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button>
-              <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Adding…' : 'Add user'}</button>
+              <button type="button" className="btn-ghost" onClick={() => setShowForm(false)} disabled={saving}>ביטול</button>
+              <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'מוסיף…' : 'הוסף'}</button>
             </div>
           </form>
         </div>
       )}
 
-      {usersLoading && <div className="loading-row">Loading users…</div>}
+      {usersLoading && <div className="loading-row">טוען משתמשים…</div>}
 
       {!usersLoading && (
         <>
           {managers.length > 0 && (
             <div className="users-section">
-              <h3 className="users-section__title">Managers</h3>
+              <h3 className="users-section__title">מנהלים</h3>
               <UserTable users={managers} onToggle={toggleActive} />
             </div>
           )}
           {employees.length > 0 && (
             <div className="users-section">
-              <h3 className="users-section__title">Employees</h3>
+              <h3 className="users-section__title">עובדים</h3>
               <UserTable users={employees} onToggle={toggleActive} />
             </div>
           )}
           {users.length === 0 && !showForm && (
             <div className="empty-state">
               <Users size={36} />
-              <p>No team members yet. Add the first one.</p>
+              <p>אין אנשי צוות עדיין. הוסף את הראשון.</p>
             </div>
           )}
         </>
@@ -256,11 +363,11 @@ const UserTable = ({ users, onToggle }) => (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Action</th>
+          <th>שם</th>
+          <th>טלפון</th>
+          <th>תפקיד</th>
+          <th>סטטוס</th>
+          <th>פעולה</th>
         </tr>
       </thead>
       <tbody>
@@ -268,17 +375,17 @@ const UserTable = ({ users, onToggle }) => (
           <tr key={u.id}>
             <td className="td-primary">{u.full_name}</td>
             <td className="td-muted">{u.phone_number}</td>
-            <td><span className={`badge ${ROLE_BADGE[u.role] || 'badge--neutral'}`}>{u.role}</span></td>
+            <td><span className={`badge ${ROLE_BADGE[u.role] || 'badge--neutral'}`}>{ROLE_HE[u.role] || u.role}</span></td>
             <td>
               <span className={`badge ${u.is_active ? 'badge--green' : 'badge--neutral'}`}>
-                {u.is_active ? 'Active' : 'Inactive'}
+                {u.is_active ? 'פעיל' : 'לא פעיל'}
               </span>
             </td>
             <td>
               <RowActionsMenu items={[
                 u.is_active
-                  ? { label: 'Deactivate', icon: <UserX size={14} />, variant: 'danger',  onClick: () => onToggle(u) }
-                  : { label: 'Reactivate', icon: <UserCheck size={14} />, variant: 'success', onClick: () => onToggle(u) },
+                  ? { label: 'השהה', icon: <UserX size={14} />, variant: 'danger',  onClick: () => onToggle(u) }
+                  : { label: 'הפעל מחדש', icon: <UserCheck size={14} />, variant: 'success', onClick: () => onToggle(u) },
               ]} />
             </td>
           </tr>

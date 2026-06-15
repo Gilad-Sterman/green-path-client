@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getBatches, createBatch, completeBatch, cancelBatch, blockBatch, unblockBatch, failBatch } from '../../api/batches';
+import { getBatches, createBatch, blockBatch, unblockBatch, failBatch, addBatchWaste } from '../../api/batches';
 import { cache, CACHE_KEYS } from '../cache';
 
 export const fetchBatches = createAsyncThunk(
@@ -34,38 +34,26 @@ export const createBatchThunk = createAsyncThunk(
   }
 );
 
-export const completeBatchThunk = createAsyncThunk(
-  'batches/complete',
-  async (id, { rejectWithValue }) => {
-    try {
-      const { data } = await completeBatch(id);
-      return data.data.batch;
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.error?.message || 'Failed to complete batch');
-    }
-  }
-);
-
-export const cancelBatchThunk = createAsyncThunk(
-  'batches/cancel',
-  async (id, { rejectWithValue }) => {
-    try {
-      const { data } = await cancelBatch(id);
-      return data.data.batch;
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.error?.message || 'Failed to cancel batch');
-    }
-  }
-);
-
 export const blockBatchThunk = createAsyncThunk(
   'batches/block',
-  async (id, { rejectWithValue }) => {
+  async ({ id, reason }, { rejectWithValue }) => {
     try {
-      const { data } = await blockBatch(id);
+      const { data } = await blockBatch(id, reason);
       return data.data.batch;
     } catch (err) {
       return rejectWithValue(err.response?.data?.error?.message || 'Failed to block batch');
+    }
+  }
+);
+
+export const addBatchWasteThunk = createAsyncThunk(
+  'batches/addWaste',
+  async ({ id, waste_kg }, { rejectWithValue }) => {
+    try {
+      const { data } = await addBatchWaste(id, waste_kg);
+      return data.data.batch;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error?.message || 'Failed to update waste');
     }
   }
 );
@@ -115,11 +103,10 @@ const batchesSlice = createSlice({
       })
       .addCase(fetchBatches.rejected,  (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(createBatchThunk.fulfilled, (state, action) => { state.list.unshift(action.payload); })
-      .addCase(completeBatchThunk.fulfilled, updateInList)
-      .addCase(cancelBatchThunk.fulfilled,   updateInList)
-      .addCase(blockBatchThunk.fulfilled,    updateInList)
-      .addCase(unblockBatchThunk.fulfilled,  updateInList)
-      .addCase(failBatchThunk.fulfilled,     updateInList);
+      .addCase(blockBatchThunk.fulfilled,     updateInList)
+      .addCase(unblockBatchThunk.fulfilled,   updateInList)
+      .addCase(failBatchThunk.fulfilled,      updateInList)
+      .addCase(addBatchWasteThunk.fulfilled,  updateInList);
   },
 });
 

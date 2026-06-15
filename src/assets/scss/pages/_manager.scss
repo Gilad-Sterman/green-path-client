@@ -341,13 +341,21 @@
 
 .component-row {
   display: grid;
-  grid-template-columns: 1fr 140px auto;
+  grid-template-columns: 110px 1fr 130px auto;
   gap: $space-3;
   align-items: start;
   padding: $space-2 0;
 
   &+& {
     border-top: 1px solid $color-border;
+  }
+
+  &__type {
+    select {
+      @include input-base;
+      width: 100%;
+      font-size: $font-size-sm;
+    }
   }
 
   &__select {
@@ -1234,6 +1242,15 @@
     margin: 0;
   }
 
+  &__section-title {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semi;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: $space-1 0 0;
+  }
+
   &__row {
     display: flex;
     justify-content: space-between;
@@ -1243,6 +1260,71 @@
     border-bottom: 1px dashed $color-border;
 
     &:last-child { border-bottom: none; }
+  }
+}
+
+// ── Batch search + chip filters ───────────────────────────────────────────────
+.batch-search-row {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin-bottom: $space-4;
+}
+
+.batch-search-input {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+
+  svg { color: $color-text-muted; flex-shrink: 0; }
+
+  input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-size: $font-size-sm;
+    color: $color-text;
+
+    &::placeholder { color: $color-text-muted; }
+  }
+}
+
+.batch-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: $space-1 $space-3;
+  border-radius: $radius-full;
+  border: 1px solid $color-border;
+  background: $color-surface;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover { border-color: $color-primary; color: $color-primary; }
+
+  &--active {
+    background: $color-primary-light;
+    border-color: $color-primary;
+    color: $color-primary;
+    font-weight: $font-weight-semi;
+  }
+
+  &__count {
+    opacity: 0.65;
+    font-size: $font-size-xs;
   }
 }
 

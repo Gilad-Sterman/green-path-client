@@ -82,6 +82,7 @@ const NewIntakePage = () => {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState('');
   const [ocrFields, setOcrFields] = useState(null);
+  const [editedOcrFields, setEditedOcrFields] = useState([]);
   const [ocrSupplierHint, setOcrSupplierHint] = useState('');
   const [ocrExtras, setOcrExtras] = useState(null);
   const [docId, setDocId] = useState(null);
@@ -118,6 +119,7 @@ const NewIntakePage = () => {
     setError('');
     if (ocrFields?.[name]) {
       setOcrFields((prev) => { const next = { ...prev }; delete next[name]; return next; });
+      setEditedOcrFields((prev) => [...new Set([...prev, name])]);
     }
     if (name === 'supplier_id') {
       setOcrSupplierHint('');
@@ -244,7 +246,7 @@ const NewIntakePage = () => {
       is_recycled: form.is_recycled,
       eligible_input_percent: form.is_recycled ? 100 : 0,
       net_weight_kg: parseFloat(form.net_weight_kg),
-      data_entry_profile: editingId ? undefined : (docId ? 'camera_upload' : 'manual_capture'),
+      data_entry_profile: editingId ? undefined : (!docId ? 'manual_capture' : editedOcrFields.length > 0 ? 'ocr_edited' : 'camera_upload'),
       notes: form.notes || undefined,
       document_ids: docId ? [docId] : [],
     };
@@ -341,7 +343,7 @@ const NewIntakePage = () => {
           <div className="ocr-upload-banner__done">
             <CheckCircle2 size={16} />
             <span>שדות מולאו אוטומטית מהמסמך</span>
-            <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setDocId(null); setForm(EMPTY_FORM); }}>
+            <button type="button" className="ocr-clear-btn" onClick={() => { setOcrFields(null); setOcrExtras(null); setOcrSupplierHint(''); setDocId(null); setForm(EMPTY_FORM); setEditedOcrFields([]); }}>
               <X size={14} /> נקה
             </button>
           </div>
@@ -386,6 +388,13 @@ const NewIntakePage = () => {
             <p className="ocr-supplier-hint">💡 המסמך מציין ספק: <strong>{ocrSupplierHint}</strong></p>
           )}
         </div>
+
+        {selectedSupplier && Array.isArray(selectedSupplier.allowed_material_types) && selectedSupplier.allowed_material_types.length === 0 && (
+          <div className="alert alert--warn">
+            <Info size={15} />
+            לספק זה לא הוגדרו סוגי חומר מורשים. יש לעדכן את הגדרות הספק לפני ביצוע קליטה.
+          </div>
+        )}
 
         <div className="employee-form__field">
           <label>מספר תעודת משלוח <span className="required">*</span>

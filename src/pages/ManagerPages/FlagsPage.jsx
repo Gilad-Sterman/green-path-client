@@ -30,6 +30,7 @@ const REASON_HE = {
   'out-of-factory':          'פעולה מחוץ למפעל',
   'inactive-product':        'תוצ"ג לא פעיל',
   'weight-discrepancy':      'פער משקל בין ספק לשקילה פנימית',
+  'ocr-field-edited':        'שדות OCR עודכנו ידנית',
 };
 
 const ENTITY_HE = {
