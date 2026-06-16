@@ -20,8 +20,14 @@ const ACCEPT_EXCEL = [
 
 const EMPTY_ITEM = { batch_id: '', weight_kg: '' };
 
-const fmtKg   = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
-const shortId = (id) => id?.slice(0, 8).toUpperCase();
+const fmtKg      = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק"ג` : '—';
+const shortId    = (id) => id?.slice(0, 8).toUpperCase();
+const toInputDate = (ddmmyyyy) => {
+  if (!ddmmyyyy) return '';
+  const [d, m, y] = ddmmyyyy.split('/');
+  if (!d || !m || !y) return '';
+  return `${y.padStart(4, '20')}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+};
 
 const ShipmentForm = ({ onClose, onSuccess }) => {
   const dispatch = useDispatch();
@@ -35,6 +41,7 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
   const [docs, setDocs]             = useState({ lab_test: null, delivery_note: null, extra: null });
   const [saving, setSaving]         = useState(false);
   const [formError, setFormError]   = useState('');
+  const [ocrFilled, setOcrFilled]     = useState(null);
   const [viewingBatch, setViewingBatch] = useState(null);
 
   useEffect(() => {
@@ -145,6 +152,7 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
     onClose();
   };
 
+
   const mandatoryDocsDone = docs.lab_test && docs.delivery_note;
 
   return (
@@ -188,7 +196,29 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
                 label="צרף תעודת משלוח"
                 hint="JPG, PNG, PDF · עד 1MB"
                 maxSizeMb={1}
-                onDocumentReady={(id) => { setDocs((p) => ({ ...p, delivery_note: id })); setFormError(''); }}
+                onDocumentReady={(id, ocrFields) => {
+                  setDocs((p) => ({ ...p, delivery_note: id }));
+                  setFormError('');
+                  if (!id || !ocrFields) { setOcrFilled(null); return; }
+                  const matchedCustomer = ocrFields.customer_name?.value
+                    ? customers.find((c) => c.name.toLowerCase().includes(ocrFields.customer_name.value.toLowerCase()) ||
+                        ocrFields.customer_name.value.toLowerCase().includes(c.name.toLowerCase()))
+                    : null;
+                  const filled = {};
+                  if (ocrFields.delivery_note_number?.value) filled.delivery_note_number = ocrFields.delivery_note_number.value;
+                  if (ocrFields.destination_address?.value)  filled.destination_address  = ocrFields.destination_address.value;
+                  if (ocrFields.shipment_date?.value)        filled.shipment_date        = toInputDate(ocrFields.shipment_date.value);
+                  if (matchedCustomer)                       filled.customer_id          = matchedCustomer.id;
+                  if (Object.keys(filled).length === 0) return;
+                  setForm((p) => ({
+                    ...p,
+                    ...(filled.delivery_note_number && !p.delivery_note_number ? { delivery_note_number: filled.delivery_note_number } : {}),
+                    ...(filled.destination_address  && !p.destination_address  ? { destination_address:  filled.destination_address  } : {}),
+                    ...(filled.shipment_date        && !p.shipment_date        ? { shipment_date:        filled.shipment_date        } : {}),
+                    ...(filled.customer_id          && !p.customer_id          ? { customer_id:          filled.customer_id          } : {}),
+                  }));
+                  setOcrFilled(filled);
+                }}
                 disabled={saving}
               />
             </div>
@@ -386,6 +416,28 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
               </div>
             )}
           </div>
+
+          {ocrFilled && (
+            <div className="ocr-upload-banner__done">
+              <span>שדות מולאו אוטומטית מתעודת המשלוח</span>
+              <button
+                type="button"
+                className="ocr-clear-btn"
+                onClick={() => {
+                  setForm((p) => ({
+                    ...p,
+                    ...(ocrFilled.delivery_note_number ? { delivery_note_number: '' } : {}),
+                    ...(ocrFilled.destination_address  ? { destination_address:  '' } : {}),
+                    ...(ocrFilled.shipment_date        ? { shipment_date:        '' } : {}),
+                    ...(ocrFilled.customer_id          ? { customer_id:          '' } : {}),
+                  }));
+                  setOcrFilled(null);
+                }}
+              >
+                <X size={14} /> נקה
+              </button>
+            </div>
+          )}
 
           <div className="form-actions">
             <button type="button" className="btn-ghost" onClick={handleClose} disabled={saving}>

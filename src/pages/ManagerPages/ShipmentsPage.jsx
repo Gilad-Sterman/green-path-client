@@ -1,12 +1,13 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Truck, Plus, AlertCircle, RefreshCw, ChevronDown, ChevronUp,
+  Truck, Plus, AlertCircle, RefreshCw, Eye, X,
   CheckCircle2, XCircle, Send, FileText, Clock, AlertTriangle,
 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
+import ShipmentDetailDrawer from '../../components/ShipmentDetailDrawer';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import ShipmentForm from './ShipmentForm';
 import {
@@ -14,7 +15,7 @@ import {
 } from '../../store/slices/shipmentsSlice';
 import { fetchCustomers } from '../../store/slices/customersSlice';
 import { fetchBatches } from '../../store/slices/batchesSlice';
-import { getShipment } from '../../api/shipments';
+import { getShipment, updateShipmentInvoice } from '../../api/shipments';
 
 const STATUS_BADGE = {
   created: 'badge--warn',
@@ -50,13 +51,18 @@ const ShipmentsPage = () => {
   const refreshedLabel = useRelativeTime(lastFetched);
 
   const [searchParams] = useSearchParams();
-  const [showForm, setShowForm]     = useState(false);
-  const [toast, setToast]           = useState('');
-  const [filter, setFilter]         = useState('all');
-  const [expandedId, setExpandedId] = useState(null);
-  const [detailData, setDetailData] = useState({});
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [confirm, setConfirm]       = useState(null);
+  const [showForm, setShowForm]         = useState(false);
+  const [toast, setToast]               = useState('');
+  const [filter, setFilter]             = useState('all');
+  const [confirm, setConfirm]           = useState(null);
+  const [viewingShipment, setViewingShipment] = useState(null);
+  const [viewingDetail,   setViewingDetail]   = useState(null);
+  const [viewingLoading,  setViewingLoading]  = useState(false);
+  const [invoiceModal,    setInvoiceModal]    = useState(null);
+  const [invoiceNumber,   setInvoiceNumber]   = useState('');
+  const [invoiceDate,     setInvoiceDate]     = useState('');
+  const [invoiceSaving,   setInvoiceSaving]   = useState(false);
+  const [invoiceError,    setInvoiceError]    = useState('');
 
   useEffect(() => {
     dispatch(fetchShipments({ force: false }));
@@ -81,7 +87,6 @@ const ShipmentsPage = () => {
           const result = await dispatch(updateShipmentStatusThunk({ id: shipment.id, status }));
           if (updateShipmentStatusThunk.fulfilled.match(result)) {
             setToast(`משלוח ${shortId(shipment.id)} בוטל.`);
-            if (detailData[shipment.id]) setDetailData((p) => ({ ...p, [shipment.id]: { ...p[shipment.id], status } }));
           } else {
             setToast(result.payload || 'עדכון סטטוס נכשל.');
           }
@@ -92,24 +97,47 @@ const ShipmentsPage = () => {
     dispatch(updateShipmentStatusThunk({ id: shipment.id, status })).then((result) => {
       if (updateShipmentStatusThunk.fulfilled.match(result)) {
         setToast(`משלוח ${shortId(shipment.id)} עודכן ל${STATUS_HE[status]}.`);
-        if (detailData[shipment.id]) setDetailData((p) => ({ ...p, [shipment.id]: { ...p[shipment.id], status } }));
       } else {
         setToast(result.payload || 'עדכון סטטוס נכשל.');
       }
     });
   };
 
-  const toggleExpand = useCallback(async (shipmentId) => {
-    if (expandedId === shipmentId) { setExpandedId(null); return; }
-    setExpandedId(shipmentId);
-    if (detailData[shipmentId]) return;
-    setDetailLoading(true);
+  const openDetail = async (s) => {
+    setViewingShipment(s);
+    setViewingDetail(null);
+    setViewingLoading(true);
     try {
-      const { data } = await getShipment(shipmentId);
-      setDetailData((p) => ({ ...p, [shipmentId]: data.data.shipment }));
+      const { data } = await getShipment(s.id);
+      setViewingDetail(data.data.shipment);
     } catch (_) { }
-    setDetailLoading(false);
-  }, [expandedId, detailData]);
+    setViewingLoading(false);
+  };
+
+  const openInvoiceModal = (s) => {
+    setInvoiceModal(s);
+    setInvoiceNumber('');
+    setInvoiceDate('');
+    setInvoiceError('');
+  };
+
+  const handleInvoiceSubmit = async (e) => {
+    e.preventDefault();
+    if (!invoiceNumber.trim()) { setInvoiceError('יש להזין מספר חשבונית.'); return; }
+    setInvoiceSaving(true);
+    try {
+      await updateShipmentInvoice(invoiceModal.id, {
+        invoice_number: invoiceNumber.trim(),
+        invoice_date:   invoiceDate || undefined,
+      });
+      setToast('חשבונית נשמרה בהצלחה.');
+      dispatch(fetchShipments({ force: true }));
+      setInvoiceModal(null);
+    } catch (err) {
+      setInvoiceError(err.response?.data?.error?.message || 'שמירת חשבונית נכשלה.');
+    }
+    setInvoiceSaving(false);
+  };
 
   const visible = shipments.filter((s) => filter === 'all' || s.status === filter);
 
@@ -189,11 +217,17 @@ const ShipmentsPage = () => {
                   <span className={`badge ${STATUS_BADGE[s.status] || 'badge--neutral'}`}>
                     {STATUS_HE[s.status] || s.status}
                   </span>
-                  {isManager && STATUS_TRANSITIONS[s.status] && (
-                    <RowActionsMenu items={STATUS_TRANSITIONS[s.status].map((t) => ({
-                      label: t.label, icon: t.icon, danger: t.danger,
-                      onClick: () => handleStatusChange(s, t.status),
-                    }))} />
+                  {isManager && (
+                    <RowActionsMenu items={[
+                      { label: 'צפייה בפרטים', icon: <Eye size={14} />, onClick: () => openDetail(s) },
+                      ...(s.invoice_status !== 'received' && s.status !== 'cancelled'
+                        ? [{ label: 'הוספת חשבונית', icon: <FileText size={14} />, onClick: () => openInvoiceModal(s) }]
+                        : []),
+                      ...(STATUS_TRANSITIONS[s.status] || []).map((t) => ({
+                        label: t.label, icon: t.icon, danger: t.danger,
+                        onClick: () => handleStatusChange(s, t.status),
+                      })),
+                    ]} />
                   )}
                 </div>
               </div>
@@ -233,65 +267,62 @@ const ShipmentsPage = () => {
                   </span>
                 )}
               </div>
-              <button
-                className="btn-ghost btn-ghost--sm"
-                style={{ marginTop: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                onClick={() => toggleExpand(s.id)}
-              >
-                {expandedId === s.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                {expandedId === s.id ? 'סגור פירוט' : 'אצוות משלוח'}
-              </button>
-              {expandedId === s.id && (
-                <div className="batch-card-detail">
-                  {detailLoading && <span className="td-muted">טוען…</span>}
-                  {detailData[s.id] && (
-                    <>
-                      {detailData[s.id].lab_test_number && (
-                        <p className="batch-card-detail__notes">
-                          <strong>בדיקת מעבדה:</strong> {detailData[s.id].lab_test_number}
-                        </p>
-                      )}
-                      {detailData[s.id].notes && (
-                        <p className="batch-card-detail__notes"><strong>הערות:</strong> {detailData[s.id].notes}</p>
-                      )}
-                      {detailData[s.id].invoice_status === 'received' && detailData[s.id].invoice_number && (
-                        <div className="shipment-invoice-detail">
-                          <CheckCircle2 size={13} className="shipment-invoice-detail__icon shipment-invoice-detail__icon--ok" />
-                          <div>
-                            <strong>חשבונית {detailData[s.id].invoice_number}</strong>
-                            {detailData[s.id].invoice_date && (
-                              <span className="td-muted" style={{ marginRight: '6px', fontSize: '11px' }}>
-                                {fmtDate(detailData[s.id].invoice_date)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {detailData[s.id].items?.map((it) => (
-                        <div key={it.id} className="batch-card-detail__row">
-                          <div>
-                            <code style={{ fontSize: '11px' }}>{shortId(it.batch_id)}</code>
-                            <span className="tag" style={{ marginRight: '6px' }}>{it.product_sku || it.product_name || '—'}</span>
-                            {it.eligible_percent != null && (
-                              <span className="td-muted" style={{ fontSize: '11px', marginRight: '4px' }}>
-                                {it.eligible_percent}%
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ textAlign: 'left', fontSize: '12px' }}>
-                            <strong>{fmtKg(it.weight_kg)}</strong>
-                            {it.credit > 0 && (
-                              <div className="td-muted">קרדיט: {fmtKg(it.credit)}</div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Shipment detail drawer */}
+      {viewingShipment && (
+        <ShipmentDetailDrawer
+          shipment={viewingDetail || viewingShipment}
+          loading={viewingLoading}
+          onClose={() => { setViewingShipment(null); setViewingDetail(null); }}
+        />
+      )}
+
+      {/* Manual invoice modal */}
+      {invoiceModal && (
+        <div className="modal-overlay" onClick={() => setInvoiceModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h3>הוספת חשבונית</h3>
+              <button className="icon-btn" onClick={() => setInvoiceModal(null)} aria-label="סגור"><X size={18} /></button>
+            </div>
+            <div className="modal__body">
+              <p style={{ fontSize: '13px', marginBottom: '12px', opacity: 0.7 }}>
+                משלוח ללקוח <strong>{invoiceModal.customer_name}</strong>
+              </p>
+              <form onSubmit={handleInvoiceSubmit} className="manager-form">
+                {invoiceError && (
+                  <div className="alert alert--error"><AlertCircle size={15} />{invoiceError}</div>
+                )}
+                <div className="form-field">
+                  <label>מספר חשבונית <span className="required">*</span></label>
+                  <input
+                    value={invoiceNumber}
+                    onChange={(e) => { setInvoiceNumber(e.target.value); setInvoiceError(''); }}
+                    placeholder="לדוגמא: INV-2024-001"
+                    maxLength={60}
+                  />
+                </div>
+                <div className="form-field">
+                  <label>תאריך חשבונית <span className="form-hint">(אופציונלי)</span></label>
+                  <input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                  />
+                </div>
+                <div className="form-actions">
+                  <button type="button" className="btn-ghost" onClick={() => setInvoiceModal(null)} disabled={invoiceSaving}>ביטול</button>
+                  <button type="submit" className="btn-primary" disabled={invoiceSaving}>
+                    {invoiceSaving ? 'שומר…' : 'שמור חשבונית'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 

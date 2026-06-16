@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Flag, RefreshCw, AlertCircle, CheckCircle2, X, AlertTriangle, Info } from 'lucide-react';
+import { Flag, RefreshCw, AlertCircle, CheckCircle2, X, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import Toast from '../../components/Toast';
+import DocumentUploader from '../../components/DocumentUploader';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import {
   fetchFlags, fetchFlagsSummary, resolveFlagThunk, dismissFlagThunk, clearFlagsError,
 } from '../../store/slices/flagsSlice';
+import { getIntake } from '../../api/intakes';
 
-const STATUS_FILTERS = ['all', 'open', 'resolved', 'dismissed'];
-const STATUS_LABELS  = { all: 'הכל', open: 'פתוח', resolved: 'מטופל', dismissed: 'בוטל' };
-const STATUS_BADGE   = { open: 'badge--warn', resolved: 'badge--green', dismissed: 'badge--neutral' };
+const STATUS_FILTERS = ['all', 'open', 'resolved', 'dismissed', 'expired'];
+const STATUS_LABELS  = { all: 'הכל', open: 'פתוח', resolved: 'מטופל', dismissed: 'בוטל', expired: 'פג תוקף' };
+const STATUS_BADGE   = { open: 'badge--warn', resolved: 'badge--green', dismissed: 'badge--neutral', expired: 'badge--neutral' };
 
 const SEVERITY_HE    = { critical: 'קריטי', high: 'גבוה', medium: 'בינוני', low: 'נמוך' };
 const SEVERITY_BADGE = { critical: 'badge--critical', high: 'badge--high', medium: 'badge--warn', low: 'badge--neutral' };
@@ -66,9 +68,12 @@ const FlagsPage = () => {
   const [resolveModal,   setResolveModal]   = useState(null);
   const [resolution,     setResolution]     = useState('approved_exception');
   const [resolveNote,    setResolveNote]    = useState('');
+  const [resolveDocId,   setResolveDocId]   = useState(null);
   const [saving,         setSaving]         = useState(false);
   const [modalError,     setModalError]     = useState('');
   const [confirmDismiss, setConfirmDismiss] = useState(null);
+  const [intakeDetail,   setIntakeDetail]   = useState(null);
+  const [intakeLoading,  setIntakeLoading]  = useState(false);
 
   useEffect(() => {
     dispatch(fetchFlags({ force: false }));
@@ -81,23 +86,40 @@ const FlagsPage = () => {
     dispatch(clearFlagsError());
   };
 
-  const openResolveModal = (flag) => {
+  const openResolveModal = async (flag) => {
     setResolveModal(flag);
     setResolution('approved_exception');
     setResolveNote('');
+    setResolveDocId(null);
     setModalError('');
+    setIntakeDetail(null);
+    if (flag.entity_type === 'intake') {
+      setIntakeLoading(true);
+      try {
+        const { data } = await getIntake(flag.entity_id);
+        setIntakeDetail(data.data.intake);
+      } catch (_) { }
+      setIntakeLoading(false);
+    }
   };
 
-  const closeModal = () => { setResolveModal(null); setSaving(false); setModalError(''); };
+  const closeModal = () => {
+    setResolveModal(null);
+    setSaving(false);
+    setModalError('');
+    setResolveDocId(null);
+    setIntakeDetail(null);
+  };
 
   const handleResolve = async (e) => {
     e.preventDefault();
     setSaving(true);
     setModalError('');
     const result = await dispatch(resolveFlagThunk({
-      id: resolveModal.id,
+      id:              resolveModal.id,
       resolution,
       resolution_note: resolveNote,
+      document_id:     resolveDocId || undefined,
     }));
     setSaving(false);
     if (resolveFlagThunk.fulfilled.match(result)) {
@@ -258,6 +280,18 @@ const FlagsPage = () => {
                   <code style={{ fontSize: '12px' }}>{shortId(f.entity_id)}</code>
                 </span>
               </div>
+              {f.entity_supplier_name && (
+                <div className="mobile-card__row">
+                  <span className="mobile-card__label">ספק:</span>
+                  <span>{f.entity_supplier_name}</span>
+                </div>
+              )}
+              {f.entity_creator_name && (
+                <div className="mobile-card__row">
+                  <span className="mobile-card__label">הוזן ע&quot;י:</span>
+                  <span>{f.entity_creator_name}</span>
+                </div>
+              )}
               <div className="mobile-card__row">
                 <span className="mobile-card__label">נוצר:</span>
                 <span>{fmtDate(f.created_at)}</span>
@@ -303,30 +337,106 @@ const FlagsPage = () => {
                   · {ENTITY_HE[resolveModal.entity_type] || resolveModal.entity_type} {shortId(resolveModal.entity_id)}
                 </span>
               </div>
+
+              {resolveModal.entity_type === 'intake' && (
+                <div className="modal-intake-detail">
+                  {intakeLoading && (
+                    <div className="loading-row loading-row--sm">
+                      <Loader2 size={13} className="spin" /> טוען פרטי קליטה…
+                    </div>
+                  )}
+                  {!intakeLoading && intakeDetail && (
+                    <div className="modal-intake-detail__grid">
+                      {intakeDetail.supplier_name && (
+                        <div className="modal-intake-detail__item">
+                          <span className="modal-intake-detail__label">ספק</span>
+                          <span>{intakeDetail.supplier_name}</span>
+                        </div>
+                      )}
+                      {intakeDetail.material_type && (
+                        <div className="modal-intake-detail__item">
+                          <span className="modal-intake-detail__label">חומר</span>
+                          <span>{intakeDetail.material_type}</span>
+                        </div>
+                      )}
+                      {intakeDetail.weight_kg != null && (
+                        <div className="modal-intake-detail__item">
+                          <span className="modal-intake-detail__label">משקל</span>
+                          <span>{parseFloat(intakeDetail.weight_kg).toLocaleString('he-IL', { maximumFractionDigits: 2 })} ק&quot;ג</span>
+                        </div>
+                      )}
+                      {intakeDetail.delivery_note_number && (
+                        <div className="modal-intake-detail__item">
+                          <span className="modal-intake-detail__label">ת&quot;מ</span>
+                          <code style={{ fontSize: '11px' }}>{intakeDetail.delivery_note_number}</code>
+                        </div>
+                      )}
+                      {intakeDetail.intake_date && (
+                        <div className="modal-intake-detail__item">
+                          <span className="modal-intake-detail__label">תאריך</span>
+                          <span>{fmtDate(intakeDetail.intake_date)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               <form onSubmit={handleResolve} className="manager-form">
                 {modalError && (
                   <div className="alert alert--error"><AlertCircle size={15} />{modalError}</div>
                 )}
                 <div className="form-field">
                   <label>סוג טיפול <span className="required">*</span></label>
-                  <select value={resolution} onChange={(e) => setResolution(e.target.value)}>
+                  <select
+                    value={resolution}
+                    onChange={(e) => { setResolution(e.target.value); setResolveDocId(null); setModalError(''); }}
+                  >
                     {RESOLUTIONS.map((r) => (
                       <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                   </select>
                 </div>
+
+                {resolution === 'corrected' && (
+                  <div className="form-field">
+                    <label>מסמך מעודכן <span className="required">*</span></label>
+                    <DocumentUploader
+                      documentType="other"
+                      label="העלה מסמך מתוקן"
+                      hint="חובה · PDF, JPG, PNG · עד 5MB"
+                      maxSizeMb={5}
+                      onDocumentReady={(id) => { setResolveDocId(id); setModalError(''); }}
+                    />
+                  </div>
+                )}
+
                 <div className="form-field">
-                  <label>הערה <span className="form-hint">(אופציונלי)</span></label>
+                  <label>
+                    הערה
+                    {resolution === 'approved_exception'
+                      ? <span className="required"> *</span>
+                      : <span className="form-hint"> (אופציונלי)</span>
+                    }
+                  </label>
                   <textarea
                     value={resolveNote}
                     onChange={(e) => setResolveNote(e.target.value)}
-                    placeholder="הוסף הסבר לצורך לוג הביקורת…"
+                    placeholder={resolution === 'approved_exception' ? 'נדרש נימוק לאישור החריגה…' : 'הוסף הסבר לצורך לוג הביקורת…'}
                     rows={3}
                   />
                 </div>
+
                 <div className="form-actions">
                   <button type="button" className="btn-ghost" onClick={closeModal} disabled={saving}>ביטול</button>
-                  <button type="submit" className="btn-primary" disabled={saving}>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={
+                      saving ||
+                      (resolution === 'approved_exception' && !resolveNote.trim()) ||
+                      (resolution === 'corrected' && !resolveDocId)
+                    }
+                  >
                     {saving ? 'מטפל…' : 'סמן כמטופל'}
                   </button>
                 </div>

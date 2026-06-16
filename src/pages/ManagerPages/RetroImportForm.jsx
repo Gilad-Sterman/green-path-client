@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { UploadCloud, FileSpreadsheet, Download, X, Loader } from 'lucide-react';
-import { importRetroFile } from '../../store/slices/retroSlice';
+import { importRetroFile, clearError } from '../../store/slices/retroSlice';
 import { downloadRetroTemplate } from '../../api/retro.js';
 
 const triggerDownload = (blob, filename) => {
@@ -36,6 +36,7 @@ const RetroImportForm = ({ onCancel }) => {
     if (!f) return;
     if (!ACCEPTED.includes(f.type) && !f.name.match(/\.(xlsx|csv)$/i)) return;
     setFile(f);
+    dispatch(clearError());
   };
 
   const handleDrop = (e) => {
@@ -123,7 +124,7 @@ const RetroImportForm = ({ onCancel }) => {
               <button
                 type="button"
                 className="retro-import-form__file-remove"
-                onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                onClick={(e) => { e.stopPropagation(); setFile(null); dispatch(clearError()); }}
               >
                 <X size={16} />
               </button>
@@ -147,7 +148,7 @@ const RetroImportForm = ({ onCancel }) => {
               type="date"
               className="retro-import-form__input"
               value={periodStart}
-              onChange={(e) => setPeriodStart(e.target.value)}
+              onChange={(e) => { setPeriodStart(e.target.value); dispatch(clearError()); }}
             />
           </div>
 
@@ -160,7 +161,7 @@ const RetroImportForm = ({ onCancel }) => {
               type="date"
               className="retro-import-form__input"
               value={periodEnd}
-              onChange={(e) => setPeriodEnd(e.target.value)}
+              onChange={(e) => { setPeriodEnd(e.target.value); dispatch(clearError()); }}
             />
           </div>
         </div>

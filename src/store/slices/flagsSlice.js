@@ -35,9 +35,9 @@ export const fetchFlagsSummary = createAsyncThunk(
 
 export const resolveFlagThunk = createAsyncThunk(
   'flags/resolve',
-  async ({ id, resolution, resolution_note }, { rejectWithValue }) => {
+  async ({ id, resolution, resolution_note, document_id }, { rejectWithValue }) => {
     try {
-      const { data } = await resolveFlag(id, { resolution, resolution_note });
+      const { data } = await resolveFlag(id, { resolution, resolution_note, document_id });
       cache.invalidate(CACHE_KEYS.FLAGS);
       return data.data.flag;
     } catch (err) {

@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux';
 import { X, AlertCircle, Plus, Trash2, Loader2 } from 'lucide-react';
 import { createBatchThunk } from '../../store/slices/batchesSlice';
 import { generateBatchCode, getBatchSources } from '../../api/batches';
-import DocumentUploader from '../../components/DocumentUploader';
 
 const fmtKg = (n) =>
   n != null
@@ -27,7 +26,7 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
   const [availableIntakes,    setAvailableIntakes]    = useState([]);
   const [availableBatches,    setAvailableBatches]    = useState([]);
   const [sourcesLoading,      setSourcesLoading]      = useState(false);
-  const [docIds,              setDocIds]              = useState([null, null]);
+  const [forConsolidation,    setForConsolidation]    = useState(false);
   const [notes,               setNotes]               = useState('');
   const [saving,              setSaving]              = useState(false);
   const [formError,           setFormError]           = useState('');
@@ -108,15 +107,13 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
     );
     if (hasMismatch) { setFormError('לכל שורת מקור יש להזין גם מקור וגם משקל.'); return; }
 
-    if (!docIds[0]) { setFormError('חובה להעלות לפחות תעודת שקילה אחת.'); return; }
-
     const payload = {
-      product_id:   productId,
-      batch_code:   batchCode.trim(),
-      batch_date:   batchDate,
-      notes:        notes.trim() || undefined,
-      document_ids: docIds.filter(Boolean),
-      sources:      validSources.map((s) => ({
+      product_id:        productId,
+      batch_code:        batchCode.trim(),
+      batch_date:        batchDate,
+      notes:             notes.trim() || undefined,
+      for_consolidation: forConsolidation,
+      sources:           validSources.map((s) => ({
         source_type: s.source_type,
         source_id:   s.source_id,
         weight_kg:   parseFloat(s.weight_kg),
@@ -302,34 +299,6 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
           </div>
         )}
 
-        {/* Documents */}
-        <div className="form-field">
-          <label>
-            תעודת שקילה <span className="required">*</span>
-            <span className="field-hint-inline"> (1–2 קבצים · JPG, PNG, PDF · עד 1MB כל אחד)</span>
-          </label>
-          <DocumentUploader
-            documentType="weighing_document"
-            label="העלה תעודת שקילה"
-            hint="חובה · JPG, PNG, PDF · עד 1MB"
-            maxSizeMb={1}
-            onDocumentReady={(id) =>
-              setDocIds((p) => { const n = [...p]; n[0] = id; return n; })
-            }
-          />
-          {docIds[0] && (
-            <DocumentUploader
-              documentType="weighing_document"
-              label="הוסף מסמך נוסף (אופציונלי)"
-              hint="JPG, PNG, PDF · עד 1MB"
-              maxSizeMb={1}
-              onDocumentReady={(id) =>
-                setDocIds((p) => { const n = [...p]; n[1] = id; return n; })
-              }
-            />
-          )}
-        </div>
-
         {/* Notes */}
         <div className="form-field">
           <label>הערות</label>
@@ -341,6 +310,21 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
           />
         </div>
 
+        {/* For consolidation toggle */}
+        <div className="form-field form-field--toggle">
+          <span className="form-field__label">מיועד להאחדה <span className="required">*</span></span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={forConsolidation}
+            className={`toggle-btn${forConsolidation ? ' toggle-btn--on' : ''}`}
+            onClick={() => setForConsolidation((p) => !p)}
+          >
+            <span className="toggle-btn__track"><span className="toggle-btn__thumb" /></span>
+            <span className="toggle-btn__label">{forConsolidation ? 'כן' : 'לא'}</span>
+          </button>
+        </div>
+
         <div className="form-actions">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>
             ביטול
@@ -348,7 +332,7 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
           <button
             type="submit"
             className="btn-primary"
-            disabled={saving || !docIds[0]}
+            disabled={saving}
           >
             {saving ? 'יוצר אצווה…' : 'צור אצווה'}
           </button>

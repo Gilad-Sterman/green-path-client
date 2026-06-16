@@ -33,6 +33,7 @@ const SuppliersPage = () => {
 
   const [tab, setTab] = useState('suppliers');
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState('supplier');
   const [editingId, setEditingId] = useState(null);
@@ -113,7 +114,11 @@ const SuppliersPage = () => {
     dispatch(clearSuppliersError()); dispatch(clearCustomersError());
   };
 
-  const filterFn = (item) => filter === 'all' ? true : filter === 'active' ? item.is_active : !item.is_active;
+  const filterFn = (item) => {
+    if (filter !== 'all' && (filter === 'active' ? !item.is_active : item.is_active)) return false;
+    if (search && !item.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  };
   const visibleSuppliers = suppliers.filter(filterFn);
   const visibleCustomers = customers.filter(filterFn);
   const visible = tab === 'suppliers' ? visibleSuppliers : visibleCustomers;
@@ -161,8 +166,19 @@ const SuppliersPage = () => {
 
             <div className="form-field">
               <label>שם <span className="required">*</span></label>
-              <input name="name" value={form.name} onChange={handleChange}
-                placeholder={formType === 'supplier' ? 'לדוגמה: כפלסטיק בע"מ' : 'לדוגמה: EcoTrade בע"מ'} />
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                maxLength={50}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData('text').replace(/\s+/g, ' ').trim().slice(0, 50);
+                  setForm((p) => ({ ...p, name: (p.name + pasted).slice(0, 50) }));
+                }}
+                placeholder={formType === 'supplier' ? 'לדוגמה: כפלסטיק בע"מ' : 'לדוגמה: EcoTrade בע"מ'}
+              />
+              <span className="field-hint" style={{ textAlign: 'left' }}>{form.name.length}/50</span>
             </div>
 
 
@@ -226,6 +242,15 @@ const SuppliersPage = () => {
         })}
       </div>
 
+      <div className="search-bar">
+        <input
+          className="search-bar__input"
+          placeholder={tab === 'suppliers' ? 'חיפוש ספק…' : 'חיפוש לקוח…'}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       {loading && <div className="loading-row">טוען…</div>}
 
       {!loading && visible.length === 0 && (
@@ -270,6 +295,13 @@ const SuppliersPage = () => {
                   </div>
                 </div>
               )}
+              <div className="mobile-card__row mobile-card__row--muted">
+                <span className="mobile-card__label">נוסף:</span>
+                <span>
+                  {s.created_at ? new Date(s.created_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
+                  {s.creator_name && <span style={{ marginRight: '6px', opacity: 0.7 }}>ע&quot;י {s.creator_name}</span>}
+                </span>
+              </div>
             </div>
           ))}
         </div>
@@ -297,6 +329,13 @@ const SuppliersPage = () => {
                     { label: 'עריכה', icon: <Pencil size={14} />, onClick: () => openCustomerForm(c) },
                   ]} />
                 </div>
+              </div>
+              <div className="mobile-card__row mobile-card__row--muted">
+                <span className="mobile-card__label">נוסף:</span>
+                <span>
+                  {c.created_at ? new Date(c.created_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
+                  {c.creator_name && <span style={{ marginRight: '6px', opacity: 0.7 }}>ע&quot;י {c.creator_name}</span>}
+                </span>
               </div>
             </div>
           ))}

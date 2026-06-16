@@ -280,7 +280,7 @@ const ProductsPage = () => {
                       disabled={!!editingId}
                     />
                   </div>
-                  {recipe.length > 1 && (
+                  {recipe.length > 1 && !editingId && (
                     <button type="button" className="icon-btn icon-btn--danger" onClick={() => removeMaterial(idx)} title="הסר">
                       <Trash2 size={14} />
                     </button>

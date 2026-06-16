@@ -748,6 +748,39 @@
   }
 }
 
+// ── Search bar ────────────────────────────────────────────────────────────────
+.search-bar {
+  margin-bottom: $space-4;
+
+  &__input {
+    width: 100%;
+    max-width: 360px;
+    padding: $space-2 $space-3;
+    font-size: $font-size-sm;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-bg;
+    color: $color-text;
+    outline: none;
+    transition: border-color 0.15s;
+    direction: rtl;
+
+    &::placeholder {
+      color: $color-text-muted;
+    }
+
+    &:focus {
+      border-color: $color-primary;
+    }
+  }
+}
+
+// ── Mobile card row muted modifier ────────────────────────────────────────────
+.mobile-card__row--muted {
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+}
+
 // ── Confirmation modal ────────────────────────────────────────────────────────
 .confirm-overlay {
   position: fixed;
@@ -1177,6 +1210,77 @@
   &__icon--ok {
     color: $color-success;
     flex-shrink: 0;
+  }
+}
+
+// ── Shipment detail drawer — detail sections ──────────────────────────────────
+.detail-section {
+  padding: $space-3 0;
+  border-bottom: 1px solid $color-border;
+
+  &:last-child { border-bottom: none; }
+
+  &__title {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $color-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: $space-3;
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $space-3 $space-4;
+
+    @media (max-width: 480px) { grid-template-columns: 1fr; }
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $color-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    &::after { content: ':'; }
+  }
+
+  &__notes {
+    margin-top: $space-3;
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    padding: $space-2 $space-3;
+    background: $color-bg-subtle;
+    border-radius: $radius-md;
+    border-right: 3px solid $color-border;
+  }
+}
+
+.detail-items {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: $space-2 $space-3;
+    background: $color-bg-subtle;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    gap: $space-3;
   }
 }
 

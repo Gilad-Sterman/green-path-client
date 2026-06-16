@@ -121,7 +121,7 @@ const retroSlice = createSlice({
             batch:         null,
           };
         } else {
-          state.error = payload?.message || 'Import failed.';
+          state.error = payload?.details?.message_he || payload?.message || 'ייבוא נכשל. אנא נסה שנית.';
         }
       });
   },

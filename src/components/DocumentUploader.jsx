@@ -35,10 +35,9 @@ const DocumentUploader = ({
       const { data } = await uploadDocument(file, { document_type: documentType });
       const doc = data?.data?.document;
       setAttached({ id: doc.id, name: file.name });
-      onDocumentReady?.(doc.id);
+      onDocumentReady?.(doc.id, doc.ocr_fields || null);
     } catch (err) {
       setUploadError(err?.response?.data?.error?.message || 'העלאה נכשלה. נסה שוב.');
-      onDocumentReady?.(null);
     } finally {
       setUploading(false);
     }
@@ -47,7 +46,7 @@ const DocumentUploader = ({
   const handleRemove = () => {
     setAttached(null);
     setUploadError('');
-    onDocumentReady?.(null);
+    onDocumentReady?.(null, null);
   };
 
   return (
