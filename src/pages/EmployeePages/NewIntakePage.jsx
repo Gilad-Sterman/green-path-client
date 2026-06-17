@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, CheckCircle2, Info, ScanLine, Loader2, X } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle2, Info, ScanLine, Loader2, X, MapPin, ArrowRight } from 'lucide-react';
 import { createIntakeThunk, updateIntakeThunk, clearIntakesError } from '../../store/slices/intakesSlice';
 import { fetchSuppliers } from '../../store/slices/suppliersSlice';
 import { fetchFlagsSummary, invalidateFlags } from '../../store/slices/flagsSlice';
 import { analyzeDocument, uploadDocument } from '../../api/documents';
+import useGeolocation from '../../hooks/useGeolocation';
 
 const MATERIAL_TYPES = ['PET', 'HDPE', 'PP', 'LDPE', 'PVC', 'PE', 'mixed', 'other'];
 
@@ -65,6 +66,13 @@ const parseDateValue = (raw) => {
 const normalizeStr = (s) =>
   (s || '').toLowerCase().trim().replace(/[^\w\u0590-\u05FF\s]/gu, '').replace(/\s+/g, ' ');
 
+const LOCATION_STATUS_LABEL = {
+  pending: { text: 'מאתר מיקום…', cls: 'location-badge--pending' },
+  granted: { text: 'מיקום זמין', cls: 'location-badge--granted' },
+  denied: { text: 'שירותי מיקום לא אושרו', cls: 'location-badge--denied' },
+  unavailable: { text: 'לא ניתן לאתר מיקום', cls: 'location-badge--unavailable' },
+};
+
 const NewIntakePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -86,6 +94,8 @@ const NewIntakePage = () => {
   const [ocrSupplierHint, setOcrSupplierHint] = useState('');
   const [ocrExtras, setOcrExtras] = useState(null);
   const [docId, setDocId] = useState(null);
+
+  const geo = useGeolocation();
 
   useEffect(() => {
     dispatch(fetchSuppliers());
@@ -249,6 +259,11 @@ const NewIntakePage = () => {
       data_entry_profile: editingId ? undefined : (!docId ? 'manual_capture' : editedOcrFields.length > 0 ? 'ocr_edited' : 'camera_upload'),
       notes: form.notes || undefined,
       document_ids: docId ? [docId] : [],
+      ...(
+        !editingId && geo.status === 'granted'
+          ? { lat: geo.lat, lng: geo.lng }
+          : {}
+      ),
     };
 
     setSaving(true);
@@ -301,15 +316,23 @@ const NewIntakePage = () => {
     );
   }
 
+  const locationBadge = !editingId ? LOCATION_STATUS_LABEL[geo.status] : null;
+
   return (
     <div className="employee-page">
       <div className="employee-page__nav">
         <button className="back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
+          <ArrowRight size={20} />
           <span>חזרה</span>
         </button>
         <h2>{editingId ? 'עריכת קליטה' : 'קליטה חדשה'}</h2>
         <div style={{ width: '60px' }} />
+        {locationBadge && (
+          <div className={`location-badge ${locationBadge.cls}`}>
+            <MapPin size={13} />
+            <span>{locationBadge.text}</span>
+          </div>
+        )}
       </div>
 
       {activeSuppliers.length === 0 && (

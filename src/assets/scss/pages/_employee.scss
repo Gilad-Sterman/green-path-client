@@ -22,6 +22,64 @@
     font-weight: $font-weight-semi;
     color: $color-text;
   }
+
+  .location-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    padding: $space-1 $space-2;
+    border-radius: $radius-full;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    white-space: nowrap;
+    transition: background $transition-fast, color $transition-fast;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    // Pulsing dot for pending state
+    &--pending {
+      background: rgba($color-text-muted, 0.10);
+      color: $color-text-muted;
+
+      svg {
+        animation: location-pulse 1.4s ease-in-out infinite;
+      }
+    }
+
+    // Green — we have a fix
+    &--granted {
+      background: $green-100;
+      color: $green-800;
+    }
+
+    // Amber — permission denied
+    &--denied {
+      background: #fff3e0;
+      color: $color-warning;
+    }
+
+    // Muted — unavailable / timeout
+    &--unavailable {
+      background: rgba($color-text-muted, 0.10);
+      color: $color-text-muted;
+    }
+  }
+
+  @keyframes location-pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.4;
+      transform: scale(0.85);
+    }
+  }
 }
 
 .back-btn {
@@ -37,7 +95,9 @@
   border-radius: $radius-sm;
   transition: opacity $transition-fast;
 
-  &:hover { opacity: 0.75; }
+  &:hover {
+    opacity: 0.75;
+  }
 }
 
 // ── Mobile-first form ─────────────────────────────────────────────────────────
@@ -57,7 +117,9 @@
       color: $color-text;
     }
 
-    input, select, textarea {
+    input,
+    select,
+    textarea {
       width: 100%;
       padding: $space-3 $space-4;
       font-size: $font-size-base;
@@ -75,9 +137,14 @@
       }
     }
 
-    select { appearance: auto; }
+    select {
+      appearance: auto;
+    }
 
-    textarea { resize: vertical; min-height: 80px; }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
   }
 
   &__row {
@@ -119,8 +186,19 @@
 }
 
 // ── Responsive table / card toggle ───────────────────────────────────────────
-.hide-on-mobile { @include mobile { display: none !important; } }
-.show-on-mobile { display: none !important; @include mobile { display: flex !important; } }
+.hide-on-mobile {
+  @include mobile {
+    display: none !important;
+  }
+}
+
+.show-on-mobile {
+  display: none !important;
+
+  @include mobile {
+    display: flex !important;
+  }
+}
 
 // ── Intake cards (mobile list view) ──────────────────────────────────────────
 .intake-cards {
@@ -252,7 +330,9 @@
   padding: 2px $space-2;
   border-radius: $radius-sm;
 
-  &:hover { background: rgba($color-primary, 0.1); }
+  &:hover {
+    background: rgba($color-primary, 0.1);
+  }
 }
 
 .ocr-spin {
@@ -260,7 +340,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // ── OCR extras info panel ─────────────────────────────────────────────────────
