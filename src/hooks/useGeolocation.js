@@ -1,24 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-/**
- * Wraps navigator.geolocation.watchPosition so components always have the
- * latest coords without triggering a fresh prompt on every render.
- *
- * Returned shape:
- * {
- *   lat:           number | null,
- *   lng:           number | null,
- *   accuracy:      number | null,   // metres
- *   status:        'pending' | 'granted' | 'denied' | 'unavailable',
- *   errorMessage:  string | null,
- * }
- *
- * status values:
- *   'pending'     — waiting for the browser permission prompt / first fix
- *   'granted'     — coords are available
- *   'denied'      — user denied permission (PERMISSION_DENIED)
- *   'unavailable' — device/browser can't provide location, or timeout
- */
 const useGeolocation = () => {
     const [state, setState] = useState({
         lat: null,
@@ -30,59 +11,51 @@ const useGeolocation = () => {
 
     const watchIdRef = useRef(null);
 
-    useEffect(() => {
+    const stopWatch = () => {
+        if (watchIdRef.current != null) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current = null;
+        }
+    };
+
+    const startWatch = useCallback(() => {
         if (!navigator?.geolocation) {
-            setState((s) => ({
-                ...s,
-                status: 'unavailable',
-                errorMessage: 'Geolocation is not supported by this browser.',
-            }));
+            setState((s) => ({ ...s, status: 'unavailable', errorMessage: 'Geolocation not supported.' }));
             return;
         }
 
-        const onSuccess = ({ coords }) => {
-            setState({
-                lat: coords.latitude,
-                lng: coords.longitude,
-                accuracy: coords.accuracy,
-                status: 'granted',
-                errorMessage: null,
-            });
-        };
+        setState((s) => ({ ...s, status: 'pending', errorMessage: null }));
+        stopWatch();
 
-        const onError = (err) => {
-            if (err.code === err.PERMISSION_DENIED) {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+            ({ coords }) => {
+                setState({
+                    lat: coords.latitude,
+                    lng: coords.longitude,
+                    accuracy: coords.accuracy,
+                    status: 'granted',
+                    errorMessage: null,
+                });
+            },
+            (err) => {
                 setState((s) => ({
                     ...s,
-                    status: 'denied',
-                    errorMessage: 'שירותי המיקום לא אושרו.',
+                    status: err.code === err.PERMISSION_DENIED ? 'denied' : 'unavailable',
+                    errorMessage: err.code === err.PERMISSION_DENIED
+                        ? 'שירותי המיקום לא אושרו.'
+                        : 'לא ניתן לאתר מיקום.',
                 }));
-            } else {
-                // POSITION_UNAVAILABLE or TIMEOUT
-                setState((s) => ({
-                    ...s,
-                    status: 'unavailable',
-                    errorMessage: 'לא ניתן לאתר מיקום.',
-                }));
-            }
-        };
-
-        const options = {
-            enableHighAccuracy: true,
-            timeout: 10_000,       // 10 s — after which onError fires with TIMEOUT
-            maximumAge: 60_000,    // accept a cached position up to 1 min old
-        };
-
-        watchIdRef.current = navigator.geolocation.watchPosition(onSuccess, onError, options);
-
-        return () => {
-            if (watchIdRef.current != null) {
-                navigator.geolocation.clearWatch(watchIdRef.current);
-            }
-        };
+            },
+            { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 }
+        );
     }, []);
 
-    return state;
+    useEffect(() => {
+        startWatch();
+        return stopWatch;
+    }, [startWatch]);
+
+    return { ...state, retry: startWatch };
 };
 
 export default useGeolocation;

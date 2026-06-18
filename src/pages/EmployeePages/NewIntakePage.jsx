@@ -328,10 +328,19 @@ const NewIntakePage = () => {
         <h2>{editingId ? 'עריכת קליטה' : 'קליטה חדשה'}</h2>
         <div style={{ width: '60px' }} />
         {locationBadge && (
-          <div className={`location-badge ${locationBadge.cls}`}>
+          <button
+            type="button"
+            className={`location-badge ${locationBadge.cls}`}
+            onClick={geo.retry}
+            title={
+              geo.status === 'denied'
+                ? 'יש לאפשר מיקום בהגדרות הדפדפן ולנסות שוב'
+                : 'לחץ לרענון מיקום'
+            }
+          >
             <MapPin size={13} />
             <span>{locationBadge.text}</span>
-          </div>
+          </button>
         )}
       </div>
 

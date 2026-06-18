@@ -34,6 +34,16 @@
     white-space: nowrap;
     transition: background $transition-fast, color $transition-fast;
 
+    // ... existing styles ...
+    cursor: pointer;
+    border: none; // reset button default
+    font-family: inherit; // reset button default
+
+    &:active {
+      opacity: 0.75;
+    }
+
+
     svg {
       flex-shrink: 0;
     }
