@@ -227,6 +227,109 @@
   color: $color-text;
 }
 
+.location-prompt-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  padding: $space-3 $space-6;
+  background: $color-primary-light;
+  border-bottom: 1px solid rgba($color-primary, 0.2);
+  direction: rtl;
+  flex-shrink: 0;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: $space-3 $space-4;
+  }
+
+  &__content {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-3;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    color: $color-primary;
+    margin-top: 2px;
+  }
+
+  strong {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+    margin-bottom: $space-1;
+  }
+
+  p {
+    font-size: $font-size-xs;
+    color: $color-text-secondary;
+    margin: 0;
+  }
+}
+
+.geo-status-pill {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-1 $space-3;
+  border-radius: $radius-full;
+  border: 1px solid transparent;
+  background: none;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__label {
+    @media (max-width: 480px) { display: none; }
+  }
+
+  &--idle {
+    color: $color-text-muted;
+    border-color: $color-border;
+    .geo-status-pill__dot { background: $color-text-muted; }
+  }
+
+  &--pending {
+    color: $color-warning;
+    border-color: rgba($color-warning, 0.3);
+    background: rgba($color-warning, 0.06);
+    .geo-status-pill__dot {
+      background: $color-warning;
+      animation: geo-pulse 1.4s ease-in-out infinite;
+    }
+  }
+
+  &--granted {
+    color: $color-success;
+    border-color: rgba($color-success, 0.3);
+    background: rgba($color-success, 0.06);
+    .geo-status-pill__dot { background: $color-success; }
+  }
+
+  &--denied {
+    color: $color-error;
+    border-color: rgba($color-error, 0.3);
+    background: rgba($color-error, 0.06);
+    .geo-status-pill__dot { background: $color-error; }
+  }
+}
+
+@keyframes geo-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
 .icon-btn {
   @include flex-center;
   width: 34px;

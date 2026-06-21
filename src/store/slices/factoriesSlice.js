@@ -131,12 +131,16 @@ const factoriesSlice = createSlice({
       .addCase(suspendFactoryThunk.fulfilled, (state, action) => {
         const idx = state.list.findIndex((f) => f.id === action.payload?.id);
         if (idx !== -1) state.list[idx] = { ...state.list[idx], ...action.payload };
+        if (state.current?.id === action.payload?.id) state.current = { ...state.current, ...action.payload };
         cache.invalidate(CACHE_KEYS.FACTORIES);
+        cache.invalidate(CACHE_KEYS.FACTORY(action.payload.id));
       })
       .addCase(unsuspendFactoryThunk.fulfilled, (state, action) => {
         const idx = state.list.findIndex((f) => f.id === action.payload?.id);
         if (idx !== -1) state.list[idx] = { ...state.list[idx], ...action.payload };
+        if (state.current?.id === action.payload?.id) state.current = { ...state.current, ...action.payload };
         cache.invalidate(CACHE_KEYS.FACTORIES);
+        cache.invalidate(CACHE_KEYS.FACTORY(action.payload.id));
       });
   },
 });

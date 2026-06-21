@@ -48,7 +48,6 @@ const ADMIN_NAV = [
   { path: '/admin/factories', icon: Building2, label: 'מפעלים' },
   { path: '/admin/users', icon: Users, label: 'משתמשים' },
   { path: '/admin/reports', icon: LayoutDashboard, label: 'דוחות' },
-  { path: '/admin/support', icon: HeadphonesIcon, label: 'תמיכה' },
 ];
 
 const STORAGE_KEY = 'gp_sidebar_open';

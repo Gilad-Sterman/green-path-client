@@ -1,0 +1,49 @@
+@use '../base/vars' as *;
+
+.address-autocomplete {
+  width: 100%;
+
+  &__wrap {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    border-radius: $radius-md;
+    transition: box-shadow $transition-fast;
+
+    &--valid {
+      gmp-place-autocomplete {
+        outline: 2px solid $color-success;
+        border-radius: $radius-md;
+      }
+    }
+  }
+
+  &__container {
+    flex: 1;
+    min-width: 0;
+
+    gmp-place-autocomplete {
+      display: block;
+      width: 100%;
+      direction: rtl;
+    }
+  }
+
+  &__check {
+    flex-shrink: 0;
+    color: $color-success;
+  }
+}
+
+.field-hint {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  margin-top: $space-1;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+
+  &--error {
+    color: $color-error;
+  }
+}

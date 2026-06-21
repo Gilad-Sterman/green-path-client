@@ -1,18 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { BarChart3, Award, Building2, Package, Scale, AlertCircle, RefreshCw, Download } from 'lucide-react';
 import { fetchReportSummary, fetchReportFactories, clearReports } from '../../store/slices/reportsSlice';
 import { downloadCreditsCSV } from '../../api/reports';
 
-const fmtKg  = (n) => n != null ? `${parseFloat(n).toLocaleString(undefined, { maximumFractionDigits: 1 })} kg` : '—';
+const fmtKg  = (n) => n != null ? `${parseFloat(n).toLocaleString('he-IL', { maximumFractionDigits: 1 })} ק"ג` : '—';
 const fmtNum = (n) => n != null ? parseInt(n).toLocaleString() : '—';
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
 
 const QUICK_RANGES = [
-  { label: 'This month',    getRange: () => { const n = new Date(); return { from: new Date(n.getFullYear(), n.getMonth(), 1).toISOString().split('T')[0], to: n.toISOString().split('T')[0] }; } },
-  { label: 'Last 3 months', getRange: () => { const n = new Date(); const f = new Date(n); f.setMonth(f.getMonth() - 3); return { from: f.toISOString().split('T')[0], to: n.toISOString().split('T')[0] }; } },
-  { label: 'This year',     getRange: () => { const n = new Date(); return { from: `${n.getFullYear()}-01-01`, to: n.toISOString().split('T')[0] }; } },
-  { label: 'All time',      getRange: () => ({ from: '', to: '' }) },
+  { label: 'החודש',       getRange: () => { const n = new Date(); return { from: new Date(n.getFullYear(), n.getMonth(), 1).toISOString().split('T')[0], to: n.toISOString().split('T')[0] }; } },
+  { label: '3 חודשים אחרונים', getRange: () => { const n = new Date(); const f = new Date(n); f.setMonth(f.getMonth() - 3); return { from: f.toISOString().split('T')[0], to: n.toISOString().split('T')[0] }; } },
+  { label: 'השנה',        getRange: () => { const n = new Date(); return { from: `${n.getFullYear()}-01-01`, to: n.toISOString().split('T')[0] }; } },
+  { label: 'כל הזמן',    getRange: () => ({ from: '', to: '' }) },
 ];
 
 const KpiCard = ({ icon: Icon, label, value, hint, variant }) => (
@@ -35,6 +36,8 @@ const AdminReportsPage = () => {
   const [to, setTo]                     = useState('');
   const [customActive, setCustomActive] = useState(false);
   const [exporting, setExporting]       = useState(false);
+  const [searchParams] = useSearchParams();
+  const [factoryFilter, setFactoryFilter] = useState(() => searchParams.get('factory_id') || '');
 
   const fetchAll = useCallback((params) => {
     dispatch(fetchReportSummary(params));
@@ -72,21 +75,32 @@ const AdminReportsPage = () => {
   };
 
   const loading = summaryLoading || factoriesLoading;
-  const maxFactoryKg = factories.length ? Math.max(...factories.map((f) => parseFloat(f.total_credits_kg || 0))) : 1;
+  const filteredFactories = factoryFilter
+    ? factories.filter((f) => String(f.factory_id) === String(factoryFilter))
+    : factories;
+  const maxFactoryKg = filteredFactories.length ? Math.max(...filteredFactories.map((f) => parseFloat(f.total_credits_kg || 0))) : 1;
+
+  const selectedFactory = factoryFilter ? filteredFactories[0] : null;
+  const kpiCredits     = selectedFactory ? selectedFactory.total_credits_kg       : summary?.total_credits_kg;
+  const kpiIntake      = selectedFactory ? selectedFactory.total_eligible_input_kg : summary?.total_intake_kg;
+  const kpiBalance     = selectedFactory ? selectedFactory.remaining_balance_kg   : summary?.remaining_balance_kg;
+  const kpiCreditsCount = selectedFactory ? selectedFactory.credits_count          : summary?.credits_count;
+  const kpiIntakesCount = selectedFactory ? selectedFactory.intakes_count          : summary?.intakes_count;
+  const kpiFactoriesCount = selectedFactory ? '1' : fmtNum(factories.length);
 
   return (
     <div className="admin-page reports-page">
       <div className="admin-page__header">
         <div>
-          <h1>Platform Reports</h1>
-          <p className="page-subtitle">Credits and activity across all factories</p>
+          <h1>דוחות פלטפורמה</h1>
+          <p className="page-subtitle">קרדיטים ופעילות בכלל המפעלים</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button className="btn-ghost btn-ghost--icon" onClick={() => applyQuick(activeRange)} disabled={loading} title="Refresh">
+          <button className="btn-ghost btn-ghost--icon" onClick={() => applyQuick(activeRange)} disabled={loading} title="רענן">
             <RefreshCw size={15} className={loading ? 'spin' : ''} />
           </button>
           <button className="btn-primary btn-primary--sm" onClick={handleExport} disabled={exporting}>
-            <Download size={15} /> {exporting ? 'Exporting…' : 'Export All CSV'}
+            <Download size={15} /> {exporting ? 'מייצא…' : 'ייצוא CSV'}
           </button>
         </div>
       </div>
@@ -109,7 +123,7 @@ const AdminReportsPage = () => {
             className={`reports-quick-btn${customActive ? ' reports-quick-btn--active' : ''}`}
             onClick={() => setCustomActive((v) => !v)}
           >
-            Custom
+            טווח מותאם
           </button>
         </div>
 
@@ -118,44 +132,61 @@ const AdminReportsPage = () => {
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} max={to || undefined} />
             <span>→</span>
             <input type="date" value={to}   onChange={(e) => setTo(e.target.value)}   min={from || undefined} />
-            <button className="btn-primary btn-primary--sm" onClick={applyCustom} disabled={!from && !to}>Apply</button>
+            <button className="btn-primary btn-primary--sm" onClick={applyCustom} disabled={!from && !to}>החל</button>
           </div>
         )}
       </div>
 
       {/* ── Platform KPI cards ─────────────────────────────────────────── */}
       <div className="reports-kpi-grid">
-        <KpiCard icon={Award}     label="Total Credits Issued"   value={summaryLoading ? '…' : fmtKg(summary?.total_credits_kg)}    variant="primary" hint={`${fmtNum(summary?.credits_count)} entries`} />
-        <KpiCard icon={Package}   label="Total Intake Weight"    value={summaryLoading ? '…' : fmtKg(summary?.total_intake_kg)}     hint={`${fmtNum(summary?.intakes_count)} intakes`} />
-        <KpiCard icon={Building2} label="Active Factories"       value={summaryLoading ? '…' : fmtNum(factories.length)}            hint="With credits issued" />
-        <KpiCard icon={Scale}     label="Platform Balance"       value={summaryLoading ? '…' : fmtKg(summary?.remaining_balance_kg)} hint="Unused eligible input" />
+        <KpiCard icon={Award}     label="סה״כ קרדיטים"        value={loading ? '…' : fmtKg(kpiCredits)}     variant="primary" hint={`${fmtNum(kpiCreditsCount)} רשומות`} />
+        <KpiCard icon={Package}   label="סה״כ משקל קליטה"     value={loading ? '…' : fmtKg(kpiIntake)}      hint={`${fmtNum(kpiIntakesCount)} קליטות`} />
+        <KpiCard icon={Building2} label={selectedFactory ? 'מפעל נבחר' : 'מפעלים פעילים'} value={loading ? '…' : kpiFactoriesCount} hint={selectedFactory ? selectedFactory.factory_name : 'עם קרדיטים שהונפקו'} />
+        <KpiCard icon={Scale}     label="יתרה"               value={loading ? '…' : fmtKg(kpiBalance)}     hint="חומר גלם זכאי שלא נוצל" />
       </div>
 
       {/* ── Per-factory breakdown ──────────────────────────────────────── */}
       <div className="reports-section">
-        <h3 className="reports-section__title">Factory Breakdown</h3>
-        {factoriesLoading && <div className="loading-row">Loading…</div>}
+        <div className="reports-section__header">
+          <h3 className="reports-section__title">פירוט לפי מפעל</h3>
+          {factories.length > 0 && (
+            <select
+              className="reports-factory-filter"
+              value={factoryFilter}
+              onChange={(e) => setFactoryFilter(e.target.value)}
+            >
+              <option value="">כל המפעלים</option>
+              {factories.map((f) => (
+                <option key={f.factory_id} value={f.factory_id}>{f.factory_name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        {factoriesLoading && <div className="loading-row">טוען…</div>}
         {!factoriesLoading && factories.length === 0 && (
-          <p className="reports-empty">No factory data available.</p>
+          <p className="reports-empty">אין נתוני מפעל זמינים.</p>
         )}
-        {!factoriesLoading && factories.length > 0 && (
+        {!factoriesLoading && filteredFactories.length === 0 && factories.length > 0 && (
+          <p className="reports-empty">אין נתונים למפעל הנבחר.</p>
+        )}
+        {!factoriesLoading && filteredFactories.length > 0 && (
           <div className="data-table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Factory</th>
-                  <th>Address</th>
-                  <th>Total Credits</th>
-                  <th>Operational</th>
-                  <th>Eligible Input</th>
-                  <th>Balance</th>
-                  <th>Intakes</th>
-                  <th>Entries</th>
-                  <th>Activity</th>
+                  <th>מפעל</th>
+                  <th>כתובת</th>
+                  <th>סה״כ קרדיטים</th>
+                  <th>תפעולי</th>
+                  <th>חומר גלם זכאי</th>
+                  <th>יתרה</th>
+                  <th>קליטות</th>
+                  <th>רשומות</th>
+                  <th>פעילות</th>
                 </tr>
               </thead>
               <tbody>
-                {factories.map((f) => {
+                {filteredFactories.map((f) => {
                   const pct = maxFactoryKg > 0 ? (parseFloat(f.total_credits_kg) / maxFactoryKg) * 100 : 0;
                   const balanceNeg = parseFloat(f.remaining_balance_kg) < 0;
                   return (

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Building2, Plus, X, CheckCircle, AlertCircle, MapPin, Users, Eye, RefreshCw, Lock, Unlock, Flag, BarChart3, Loader2 } from 'lucide-react';
+import { Building2, Plus, X, CheckCircle, AlertCircle, Users, Eye, RefreshCw, Lock, Unlock, Flag, BarChart3 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
+import AddressAutocomplete from '../../components/AddressAutocomplete';
 import { fetchFactories, createFactoryThunk, clearFactoriesError, suspendFactoryThunk, unsuspendFactoryThunk } from '../../store/slices/factoriesSlice';
-import { geocodeAddress } from '../../api/factories';
 import useRelativeTime from '../../hooks/useRelativeTime';
 
 const STATUS_BADGE = {
@@ -15,7 +15,7 @@ const STATUS_BADGE = {
 
 const STATUS_LABEL = {
   active:    'פעיל',
-  suspended: 'מושהה',
+  suspended: 'חסום',
   inactive:  'לא פעיל',
 };
 
@@ -59,8 +59,7 @@ const FactoriesPage = () => {
   const [saving, setSaving]       = useState(false);
   const [successMsg, setSuccess]  = useState('');
   const [formError, setFormError] = useState('');
-  const [geocoding, setGeocoding] = useState(false);
-  const [geoState, setGeoState]   = useState(null);
+  const [formKey, setFormKey]     = useState(0);
 
   useEffect(() => {
     dispatch(fetchFactories());
@@ -77,28 +76,21 @@ const FactoriesPage = () => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setFormError('');
-    if (name === 'address') setGeoState(null);
   };
 
-  const handleGeocode = async () => {
-    if (!form.address.trim()) return;
-    setGeocoding(true);
-    setGeoState(null);
-    try {
-      const { data } = await geocodeAddress(form.address.trim());
-      const { lat, lng, formatted_address } = data.data;
-      setGeoState({ lat, lng, formatted_address });
-      setForm((p) => ({
-        ...p,
-        geofence_lat: String(lat),
-        geofence_lng: String(lng),
-        geofence_radius_meters: p.geofence_radius_meters || '2000',
-      }));
-    } catch (err) {
-      setGeoState({ error: err.response?.data?.error?.message || 'לא ניתן לאתר את הכתובת. נסה לפרט יותר.' });
-    } finally {
-      setGeocoding(false);
-    }
+  const handleAddressInput = (text) => {
+    setForm((p) => ({ ...p, address: text, geofence_lat: '', geofence_lng: '' }));
+    setFormError('');
+  };
+
+  const handlePlaceSelect = ({ address, lat, lng }) => {
+    setForm((p) => ({
+      ...p,
+      address,
+      geofence_lat: lat.toFixed(6),
+      geofence_lng: lng.toFixed(6),
+      geofence_radius_meters: p.geofence_radius_meters || '2000',
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -152,6 +144,7 @@ const FactoriesPage = () => {
     if (createFactoryThunk.fulfilled.match(result)) {
       setSuccess(`המפעל "${form.name}" נוצר בהצלחה.`);
       setForm(EMPTY_FORM);
+      setFormKey((k) => k + 1);
       setShowForm(false);
       dispatch(fetchFactories({ force: true }));
       setTimeout(() => setSuccess(''), 4000);
@@ -186,7 +179,7 @@ const FactoriesPage = () => {
     setShowForm(false);
     setForm(EMPTY_FORM);
     setFormError('');
-    setGeoState(null);
+    setFormKey((k) => k + 1);
     dispatch(clearFactoriesError());
   };
 
@@ -274,40 +267,23 @@ const FactoriesPage = () => {
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="address">כתובת המפעל <span className="required">*</span></label>
-                  <input
-                    id="address" name="address" type="text"
-                    placeholder="לדוגמה: 12 אזור תעשייה, תל אביב"
-                    value={form.address} onChange={handleChange} required
+                  <label>כתובת המפעל <span className="required">*</span></label>
+                  <AddressAutocomplete
+                    key={formKey}
+                    placeholder="לדוגמה: רחוב התעשייה 12, תל אביב"
+                    required
+                    onInputChange={handleAddressInput}
+                    onPlaceSelect={handlePlaceSelect}
                   />
-                </div>
-
-                <div className="form-field">
-                  <button
-                    type="button"
-                    className="btn-geocode"
-                    onClick={handleGeocode}
-                    disabled={!form.address.trim() || geocoding}
-                  >
-                    {geocoding
-                      ? <><Loader2 size={14} className="spin" /> מאתר מיקום...</>
-                      : <><MapPin size={14} /> אתר מיקום אוטומטית</>}
-                  </button>
-                  {geoState?.error && (
-                    <span className="geo-result geo-result--error">
-                      <AlertCircle size={13} />
-                      {geoState.error}
-                    </span>
-                  )}
-                  {geoState?.lat && (
+                  {form.geofence_lat && (
                     <span className="geo-result geo-result--success">
                       <CheckCircle size={13} />
-                      {geoState.formatted_address}
+                      {form.address}
                     </span>
                   )}
                 </div>
 
-                {geoState?.lat && (
+                {form.geofence_lat && (
                   <div className="form-field">
                     <label htmlFor="geofence_radius_meters">רדיוס גאופנס (מטרים)</label>
                     <input
@@ -380,7 +356,7 @@ const FactoriesPage = () => {
                 className="btn-primary"
                 disabled={
                   saving ||
-                  !geoState?.lat ||
+                  !form.geofence_lat ||
                   !form.name.trim() ||
                   !form.company_id_number.trim() ||
                   !form.address.trim() ||

@@ -13,6 +13,7 @@ import creditsReducer   from './slices/creditsSlice';
 import flagsReducer     from './slices/flagsSlice';
 import reportsReducer   from './slices/reportsSlice';
 import retroReducer     from './slices/retroSlice';
+import geoReducer       from './slices/geoSlice';
 
 const combinedReducer = combineReducers({
   auth:      authReducer,
@@ -28,6 +29,7 @@ const combinedReducer = combineReducers({
   flags:     flagsReducer,
   reports:   reportsReducer,
   retro:     retroReducer,
+  geo:       geoReducer,
 });
 
 const RESET_ACTIONS = new Set(['auth/logout/fulfilled', 'auth/clearAuth']);

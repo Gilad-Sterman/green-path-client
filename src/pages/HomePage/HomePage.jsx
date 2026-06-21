@@ -18,8 +18,8 @@ const PLACEHOLDER_CARDS = [
 ];
 
 const HomePage = () => {
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const dispatch    = useDispatch();
+  const { user }    = useSelector((state) => state.auth);
 
   const handleLogout = () => dispatch(logoutThunk());
 

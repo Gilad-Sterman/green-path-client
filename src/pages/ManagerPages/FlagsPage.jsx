@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { Flag, RefreshCw, AlertCircle, CheckCircle2, X, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import Toast from '../../components/Toast';
 import DocumentUploader from '../../components/DocumentUploader';
@@ -59,6 +60,9 @@ const FlagsPage = () => {
   const dispatch = useDispatch();
   const { list: flags, summary, loading, error, lastFetched } = useSelector((s) => s.flags);
   const refreshedLabel = useRelativeTime(lastFetched);
+
+  const [searchParams] = useSearchParams();
+  const factoryIdFilter = searchParams.get('factory_id') || '';
 
   const [statusFilter,   setStatusFilter]   = useState('open');
   const [severityFilter, setSeverityFilter] = useState('');
@@ -144,6 +148,7 @@ const FlagsPage = () => {
   };
 
   const visible = flags.filter((f) => {
+    if (factoryIdFilter && String(f.factory_id) !== String(factoryIdFilter)) return false;
     if (statusFilter !== 'all' && f.status !== statusFilter) return false;
     if (severityFilter && f.severity !== severityFilter)      return false;
     if (entityFilter   && f.entity_type !== entityFilter)     return false;
@@ -186,6 +191,12 @@ const FlagsPage = () => {
         </div>
       )} */}
 
+      {factoryIdFilter && (
+        <div className="alert alert--info" style={{ marginBottom: '12px' }}>
+          <AlertCircle size={15} />
+          מוצגים דגלים למפעל ספציפי בלבד. כדי לראות הכל, נווט ל-<a href="/admin/flags">כל הדגלים</a>.
+        </div>
+      )}
       {error && <div className="alert alert--error"><AlertCircle size={16} />{error}</div>}
       <Toast message={toast} onClose={() => setToast('')} />
 

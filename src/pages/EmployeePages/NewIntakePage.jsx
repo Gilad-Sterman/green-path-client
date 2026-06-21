@@ -6,7 +6,7 @@ import { createIntakeThunk, updateIntakeThunk, clearIntakesError } from '../../s
 import { fetchSuppliers } from '../../store/slices/suppliersSlice';
 import { fetchFlagsSummary, invalidateFlags } from '../../store/slices/flagsSlice';
 import { analyzeDocument, uploadDocument } from '../../api/documents';
-import useGeolocation from '../../hooks/useGeolocation';
+import { retryWatcher } from '../../store/slices/geoSlice';
 
 const MATERIAL_TYPES = ['PET', 'HDPE', 'PP', 'LDPE', 'PVC', 'PE', 'mixed', 'other'];
 
@@ -95,7 +95,7 @@ const NewIntakePage = () => {
   const [ocrExtras, setOcrExtras] = useState(null);
   const [docId, setDocId] = useState(null);
 
-  const geo = useGeolocation();
+  const geo = useSelector((state) => state.geo);
 
   useEffect(() => {
     dispatch(fetchSuppliers());
@@ -331,7 +331,7 @@ const NewIntakePage = () => {
           <button
             type="button"
             className={`location-badge ${locationBadge.cls}`}
-            onClick={geo.retry}
+            onClick={() => dispatch(retryWatcher())}
             title={
               geo.status === 'denied'
                 ? 'יש לאפשר מיקום בהגדרות הדפדפן ולנסות שוב'

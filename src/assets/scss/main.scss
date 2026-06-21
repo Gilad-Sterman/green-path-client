@@ -6,6 +6,7 @@
 // ─── Components ──────────────────────────────────────────────────────────────
 @use 'components/layout';
 @use 'components/cards';
+@use 'components/address-autocomplete';
 
 // ─── Pages ───────────────────────────────────────────────────────────────────
 @use 'pages/login';

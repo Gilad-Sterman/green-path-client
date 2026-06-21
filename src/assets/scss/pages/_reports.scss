@@ -118,13 +118,31 @@
   @include flex-col;
   gap: $space-4;
 
+  &__header {
+    @include flex-between;
+    padding-bottom: $space-3;
+    border-bottom: 1px solid $color-border;
+  }
+
   &__title {
     font-size: $font-size-base;
     font-weight: $font-weight-semi;
     color: $color-text;
-    padding-bottom: $space-3;
-    border-bottom: 1px solid $color-border;
   }
+}
+
+.reports-factory-filter {
+  padding: $space-1 $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-text;
+  background: $color-surface;
+  cursor: pointer;
+  min-width: 160px;
+  direction: rtl;
+
+  &:focus { outline: 2px solid $color-primary; border-color: transparent; }
 }
 
 .reports-empty {

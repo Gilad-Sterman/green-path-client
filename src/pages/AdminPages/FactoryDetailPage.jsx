@@ -3,11 +3,12 @@ import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   ArrowLeft, Building2, MapPin, Users, Plus, X,
-  CheckCircle, AlertCircle, UserCheck, UserX, RefreshCw, Pencil,
+  CheckCircle, AlertCircle, UserCheck, UserX, RefreshCw, Pencil, Flag, Download, Scale,
 } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import { fetchFactory, updateFactoryThunk } from '../../store/slices/factoriesSlice';
 import { fetchUsers, createUserThunk, deactivateUserThunk, reactivateUserThunk } from '../../store/slices/usersSlice';
+import { getLedgerBalance } from '../../api/ledger';
 import useRelativeTime from '../../hooks/useRelativeTime';
 
 const ROLE_BADGE = {
@@ -17,7 +18,7 @@ const ROLE_BADGE = {
 };
 
 const ROLE_HE = { manager: 'מנהל', employee: 'עובד', internal_admin: 'אדמין' };
-const STATUS_HE = { active: 'פעיל', suspended: 'מושהה', inactive: 'לא פעיל' };
+const STATUS_HE = { active: 'פעיל', suspended: 'חסום', inactive: 'לא פעיל' };
 
 const COUNTRY_CODES = [
   { code: '+972', label: '🇮🇱 +972', minLen: 9 },
@@ -43,10 +44,17 @@ const FactoryDetailPage = () => {
   const [editForm, setEditForm]       = useState({ name: '', company_id_number: '', address: '', geofence_radius_meters: '' });
   const [editSaving, setEditSaving]   = useState(false);
   const [editError, setEditError]     = useState('');
+  const [balance, setBalance]         = useState(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchFactory(id));
     dispatch(fetchUsers({ factory_id: id }));
+    setBalanceLoading(true);
+    getLedgerBalance({ factory_id: id })
+      .then(({ data }) => setBalance(data.data.balance))
+      .catch(() => setBalance(null))
+      .finally(() => setBalanceLoading(false));
   }, [dispatch, id]);
 
   const handleChange = (e) => {
@@ -145,6 +153,14 @@ const FactoryDetailPage = () => {
           <p className="page-subtitle">מ.ח.: {factory.company_id_number}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to={`/admin/flags?factory_id=${id}`} className="btn-ghost btn-ghost--sm">
+            <Flag size={14} />
+            צפייה בדגלים
+          </Link>
+          <Link to={`/admin/reports?factory_id=${id}`} className="btn-ghost btn-ghost--sm">
+            <Download size={14} />
+            דו"ח קרדיטים
+          </Link>
           <button className="btn-ghost btn-ghost--sm" onClick={openEditForm}>
             <Pencil size={14} />
             ערוך פרטים
@@ -277,6 +293,32 @@ const FactoryDetailPage = () => {
         <span className="factory-audit-block__item">
           <strong>בתאריך ושעה:</strong> {new Date(factory.created_at).toLocaleString('he-IL')}
         </span>
+      </div>
+
+      <div className="factory-balance-section">
+        <div className="section-header section-header--tight">
+          <h2><Scale size={16} style={{ marginLeft: '6px' }} />יתרת חשבון</h2>
+        </div>
+        {balanceLoading && <div className="loading-row">טוען יתרה…</div>}
+        {!balanceLoading && balance && (
+          <div className="balance-cards">
+            <div className="balance-card">
+              <span className="balance-card__label">חומר גלם שנקלט</span>
+              <span className="balance-card__value">{parseFloat(balance.total_input_kg || 0).toLocaleString('he-IL', { maximumFractionDigits: 1 })} ק"ג</span>
+            </div>
+            <div className="balance-card balance-card--credits">
+              <span className="balance-card__label">קרדיטים שהונפקו</span>
+              <span className="balance-card__value">{parseFloat(balance.total_output_kg || 0).toLocaleString('he-IL', { maximumFractionDigits: 1 })} ק"ג</span>
+            </div>
+            <div className={`balance-card${parseFloat(balance.remaining_balance_kg) < 0 ? ' balance-card--negative' : ' balance-card--positive'}`}>
+              <span className="balance-card__label">יתרה</span>
+              <span className="balance-card__value">{parseFloat(balance.remaining_balance_kg || 0).toLocaleString('he-IL', { maximumFractionDigits: 1 })} ק"ג</span>
+            </div>
+          </div>
+        )}
+        {!balanceLoading && !balance && (
+          <p className="td-muted" style={{ fontSize: '13px' }}>לא נמצאו נתוני יתרה למפעל זה.</p>
+        )}
       </div>
 
       <div className="section-header">

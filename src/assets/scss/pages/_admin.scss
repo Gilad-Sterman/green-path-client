@@ -381,6 +381,59 @@
   &__sep { color: $color-border; }
 }
 
+// ── Factory balance section ───────────────────────────────────────────────────
+.factory-balance-section {
+  margin-bottom: $space-6;
+}
+
+.section-header--tight {
+  margin-top: $space-5;
+  margin-bottom: $space-3;
+}
+
+.balance-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: $space-3;
+}
+
+.balance-card {
+  @include card;
+  padding: $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  border-right: 3px solid $color-border;
+
+  &__label {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__value {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+  }
+
+  &--credits {
+    border-right-color: $color-primary;
+    .balance-card__value { color: $color-primary; }
+  }
+
+  &--positive {
+    border-right-color: $color-success;
+    .balance-card__value { color: $color-success; }
+  }
+
+  &--negative {
+    border-right-color: $color-error;
+    .balance-card__value { color: $color-error; }
+  }
+}
+
 // ── Section header (title + action button) ────────────────────────────────────
 .section-header {
   @include flex-between;
