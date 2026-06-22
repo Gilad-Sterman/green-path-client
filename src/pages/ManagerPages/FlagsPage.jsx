@@ -30,6 +30,7 @@ const REASON_HE = {
   'incompatible-supplier':   'ספק לא תואם',
   'missing-document':        'מסמך חסר',
   'ocr-mismatch':            'אי-התאמת OCR',
+  'lab_test_mismatch':       'אי-התאמת בדיקת מעבדה',
   'out-of-factory':          'פעולה מחוץ למפעל',
   'inactive-product':        'תוצ"ג לא פעיל',
   'weight-discrepancy':      'פער משקל בין ספק לשקילה פנימית',

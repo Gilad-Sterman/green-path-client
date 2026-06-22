@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { X, Upload, Loader2, AlertCircle, CheckCircle2, Scale } from 'lucide-react';
 import { uploadDocument, analyzeDocument } from '../api/documents';
+import DocumentUploader from './DocumentUploader';
 import { addWeighingThunk } from '../store/slices/intakesSlice';
 import { fetchFlagsSummary } from '../store/slices/flagsSlice';
 
@@ -33,6 +34,7 @@ const InternalWeighingModal = ({ intake, onClose, onSuccess }) => {
   const [sourceType,     setSourceType]     = useState('manual');
   const [notes,          setNotes]          = useState('');
 
+  const [extraDocIds, setExtraDocIds] = useState([]);
   const [saving,    setSaving]    = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -107,11 +109,12 @@ const InternalWeighingModal = ({ intake, onClose, onSuccess }) => {
     const result = await dispatch(addWeighingThunk({
       intakeId: intake.id,
       body: {
-        document_id:     docId,
-        measured_weight: w,
-        weighing_date:   weighingDate,
-        source_type:     sourceType,
-        notes:           notes.trim() || undefined,
+        document_id:        docId,
+        measured_weight:    w,
+        weighing_date:      weighingDate,
+        source_type:        sourceType,
+        notes:              notes.trim() || undefined,
+        extra_document_ids: extraDocIds.length > 0 ? extraDocIds : undefined,
       },
     }));
     setSaving(false);
@@ -168,6 +171,22 @@ const InternalWeighingModal = ({ intake, onClose, onSuccess }) => {
           </label>
           {fileError && <p className="iw-modal__error"><AlertCircle size={12} /> {fileError}</p>}
           {ocrDone && <p className="iw-ocr-hint">נתונים חולצו אוטומטית — ניתן לערוך</p>}
+
+          {docId && (
+            <div className="iw-extra-docs">
+              <label className="iw-extra-docs__label">מסמכים נוספים <span className="form-hint">(אופציונלי · עד 25)</span></label>
+              <DocumentUploader
+                documentType="weighing_document"
+                label="הוסף מסמך תומך"
+                hint="JPG, PNG, PDF · עד 5MB"
+                maxSizeMb={5}
+                multiple
+                maxFiles={25}
+                onDocumentReady={(ids) => setExtraDocIds(ids)}
+                disabled={saving || uploading}
+              />
+            </div>
+          )}
 
           <div className="iw-modal__fields-row">
             <div className="iw-modal__field">

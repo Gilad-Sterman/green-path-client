@@ -1432,6 +1432,66 @@
   }
 }
 
+// ── Batch extra filters (date range + creator) ────────────────────────────────
+.batch-extra-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-3;
+  margin-block: $space-1;
+}
+
+.batch-date-range {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.batch-date-input {
+  height: 34px;
+  padding: 0 $space-2;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  color: $color-text;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: $color-primary; }
+}
+
+.batch-date-sep {
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.batch-creator-select {
+  height: 34px;
+  padding: 0 $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  color: $color-text;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: $color-primary; }
+}
+
+.batch-clear-btn {
+  height: 34px;
+  padding: 0 $space-3;
+  border: 1px solid rgba($color-error, 0.35);
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $color-error;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover { background: rgba($color-error, 0.06); }
+}
+
 // ── Settings danger zone ───────────────────────────────────────────────────────
 .settings-danger-zone {
   @include flex-between;
@@ -1574,6 +1634,25 @@
   &:hover          { border-color: $color-primary; color: $color-primary; }
   &--busy          { cursor: default; pointer-events: none; }
   &--done          { border-style: solid; border-color: $color-primary; color: $color-primary; }
+}
+
+.iw-extra-docs {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+
+  &__label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    color: $color-text-muted;
+  }
+}
+
+.doc-uploader__list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  margin-bottom: $space-1;
 }
 
 .iw-ocr-hint {

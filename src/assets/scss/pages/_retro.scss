@@ -868,6 +868,195 @@
   }
 }
 
+// ─── Docs Upload Step (Step 2 of import flow) ────────────────────────────────
+
+.retro-docs-step {
+  background: $color-surface;
+  border-radius: $radius-lg;
+  border: 1px solid $color-border;
+  padding: $space-8;
+  box-shadow: $shadow-sm;
+  max-width: 700px;
+
+  @include mobile {
+    max-width: 100%;
+    padding: $space-5 $space-4;
+  }
+
+  &__header {
+    margin-bottom: $space-5;
+  }
+
+  &__title {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+    margin: 0 0 $space-3;
+  }
+
+  &__steps {
+    display: flex;
+    gap: $space-3;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  &__step {
+    padding: $space-1 $space-2;
+    border-radius: $radius-sm;
+    font-size: $font-size-xs;
+
+    &--done   { background: $green-50;             color: $color-success; }
+    &--active { background: $color-primary-light;  color: $color-primary; font-weight: $font-weight-semi; }
+  }
+
+  &__banner {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-3 $space-4;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi;
+    margin-bottom: $space-4;
+
+    &--ok    { background: $green-100;          color: $green-800; }
+    &--warn  { background: #fff3e0;             color: $color-warning; }
+    &--error { background: $color-error-bg;     color: $color-error; }
+  }
+
+  &__flagged {
+    font-weight: $font-weight-normal;
+    opacity: 0.8;
+  }
+
+  &__errors {
+    background: $color-error-bg;
+    border-radius: $radius-md;
+    padding: $space-3 $space-4;
+    margin-bottom: $space-5;
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  &__error-row {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-2;
+    font-size: $font-size-xs;
+    color: $color-error;
+    line-height: 1.4;
+
+    svg { flex-shrink: 0; margin-top: 1px; }
+  }
+
+  &__errors-more {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    font-style: italic;
+    margin-top: $space-1;
+  }
+
+  &__docs {
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $space-5;
+    margin-bottom: $space-5;
+    display: flex;
+    flex-direction: column;
+    gap: $space-5;
+
+    @include mobile { padding: $space-4; }
+  }
+
+  &__docs-title {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+    padding-bottom: $space-3;
+    border-bottom: 1px solid $color-border;
+  }
+
+  &__docs-hint {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-normal;
+    color: $color-text-muted;
+    margin-right: auto;
+  }
+
+  &__slot {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+  }
+
+  &__slot-header {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+  }
+
+  &__slot-label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi;
+    color: $color-text;
+
+    .required { color: $color-error; }
+  }
+
+  &__slot-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: $font-size-xs;
+    color: $color-success;
+    font-weight: $font-weight-semi;
+  }
+
+  &__import-error {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-3 $space-4;
+    background: $color-error-bg;
+    color: $color-error;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    margin-bottom: $space-4;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+
+    @include mobile { button { width: 100%; justify-content: center; } }
+  }
+
+  &__btn-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-2 $space-6;
+    background: $color-primary;
+    color: #fff;
+    border: none;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi;
+    cursor: pointer;
+    transition: background $transition-fast;
+
+    &:hover:not(:disabled) { background: $color-primary-hover; }
+    &:disabled { opacity: 0.6; cursor: default; }
+  }
+}
+
 .spin {
   animation: spin 0.8s linear infinite;
 }

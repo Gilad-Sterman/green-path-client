@@ -42,6 +42,8 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
   const [saving, setSaving]         = useState(false);
   const [formError, setFormError]   = useState('');
   const [ocrFilled, setOcrFilled]     = useState(null);
+  const [ocrLabFilled, setOcrLabFilled] = useState(false);
+  const [labTestOcrPct, setLabTestOcrPct] = useState(null);
   const [viewingBatch, setViewingBatch] = useState(null);
 
   useEffect(() => {
@@ -128,6 +130,7 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
       delivery_note_number:  form.delivery_note_number.trim(),
       lab_test_number:       form.lab_test_number.trim(),
       notes:                form.notes || undefined,
+      lab_test_recycled_percent: labTestOcrPct,
       document_ids,
       items: validItems.map((it) => ({
         batch_id:  it.batch_id,
@@ -182,7 +185,26 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
                 hint="JPG, PNG, PDF, Excel · עד 1MB"
                 accept={ACCEPT_EXCEL}
                 maxSizeMb={1}
-                onDocumentReady={(id) => { setDocs((p) => ({ ...p, lab_test: id })); setFormError(''); }}
+                onDocumentReady={(id, ocrFields) => {
+                  setDocs((p) => ({ ...p, lab_test: id }));
+                  setFormError('');
+                  if (!id) {
+                    setOcrLabFilled(false);
+                    setLabTestOcrPct(null);
+                    return;
+                  }
+                  if (!ocrFields) return;
+                  if (ocrFields.recycled_content_percent?.value) {
+                    setLabTestOcrPct(parseFloat(ocrFields.recycled_content_percent.value));
+                  }
+                  if (ocrFields.lab_test_number?.value) {
+                    setForm((p) => ({
+                      ...p,
+                      ...(p.lab_test_number ? {} : { lab_test_number: ocrFields.lab_test_number.value }),
+                    }));
+                    setOcrLabFilled((prev) => prev || !form.lab_test_number);
+                  }
+                }}
                 disabled={saving}
               />
             </div>
@@ -417,21 +439,24 @@ const ShipmentForm = ({ onClose, onSuccess }) => {
             )}
           </div>
 
-          {ocrFilled && (
+          {(ocrFilled || ocrLabFilled) && (
             <div className="ocr-upload-banner__done">
-              <span>שדות מולאו אוטומטית מתעודת המשלוח</span>
+              <span>שדות מולאו אוטומטית ממסמכי המשלוח</span>
               <button
                 type="button"
                 className="ocr-clear-btn"
                 onClick={() => {
                   setForm((p) => ({
                     ...p,
-                    ...(ocrFilled.delivery_note_number ? { delivery_note_number: '' } : {}),
-                    ...(ocrFilled.destination_address  ? { destination_address:  '' } : {}),
-                    ...(ocrFilled.shipment_date        ? { shipment_date:        '' } : {}),
-                    ...(ocrFilled.customer_id          ? { customer_id:          '' } : {}),
+                    ...(ocrFilled?.delivery_note_number ? { delivery_note_number: '' } : {}),
+                    ...(ocrFilled?.destination_address  ? { destination_address:  '' } : {}),
+                    ...(ocrFilled?.shipment_date        ? { shipment_date:        '' } : {}),
+                    ...(ocrFilled?.customer_id          ? { customer_id:          '' } : {}),
+                    ...(ocrLabFilled                    ? { lab_test_number:      '' } : {}),
                   }));
                   setOcrFilled(null);
+                  setOcrLabFilled(false);
+                  setLabTestOcrPct(null);
                 }}
               >
                 <X size={14} /> נקה

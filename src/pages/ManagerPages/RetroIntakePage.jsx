@@ -8,11 +8,14 @@ import {
   fetchRetroIntakes,
   fetchRetroIntakeById,
   clearImportResult,
+  clearPreviewResult,
   clearSelectedBatch,
+  importRetroFile,
 } from '../../store/slices/retroSlice';
 import { downloadErrorReport } from '../../api/retro.js';
 import RetroImportForm   from './RetroImportForm';
 import RetroImportResult from './RetroImportResult';
+import RetroDocsStep     from './RetroDocsStep';
 
 const triggerDownload = (blob, filename) => {
   const url = URL.createObjectURL(blob);
@@ -59,16 +62,23 @@ const RecordStatusBadge = ({ status }) => {
 
 const RetroIntakePage = () => {
   const dispatch = useDispatch();
-  const { batches, selectedBatch, records, loading, detailLoading, importResult } =
+  const { batches, selectedBatch, records, loading, detailLoading, importResult, previewResult } =
     useSelector((s) => s.retro);
+  const { user } = useSelector((s) => s.auth);
 
-  const [view, setView] = useState('list');
-  const [recordFilter, setRecordFilter] = useState('all');
+  const [view,             setView]             = useState('list');
+  const [recordFilter,     setRecordFilter]     = useState('all');
   const [errorDownloading, setErrorDownloading] = useState(null);
+  const [pendingFile,      setPendingFile]      = useState(null);
+  const [pendingMeta,      setPendingMeta]      = useState({});
 
   useEffect(() => {
     dispatch(fetchRetroIntakes({}));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (previewResult) setView('preview');
+  }, [previewResult]);
 
   useEffect(() => {
     if (importResult) setView('result');
@@ -83,7 +93,32 @@ const RetroIntakePage = () => {
   const handleBack = () => {
     dispatch(clearSelectedBatch());
     dispatch(clearImportResult());
+    dispatch(clearPreviewResult());
     setView('list');
+  };
+
+  const handlePreviewBack = () => {
+    dispatch(clearPreviewResult());
+    setView('import');
+  };
+
+  const handlePreviewReady = (file, meta) => {
+    setPendingFile(file);
+    setPendingMeta(meta);
+  };
+
+  const handleFinalizeImport = (invoiceDocIds, labTestDocIds) => {
+    const fd = new FormData();
+    fd.append('file', pendingFile);
+    if (pendingMeta.periodStart) fd.append('period_start', pendingMeta.periodStart);
+    if (pendingMeta.periodEnd)   fd.append('period_end',   pendingMeta.periodEnd);
+    if (pendingMeta.notes)       fd.append('notes',        pendingMeta.notes);
+    fd.append('invoice_doc_ids',  JSON.stringify(invoiceDocIds));
+    fd.append('lab_test_doc_ids', JSON.stringify(labTestDocIds));
+    if (user?.role === 'internal_admin' && user?.factory_id) {
+      fd.append('factory_id', user.factory_id);
+    }
+    dispatch(importRetroFile(fd));
   };
 
   const handleNewImport = () => {
@@ -110,7 +145,20 @@ const RetroIntakePage = () => {
   if (view === 'import') {
     return (
       <div className="retro-page">
-        <RetroImportForm onCancel={handleBack} />
+        <RetroImportForm onCancel={handleBack} onPreviewReady={handlePreviewReady} />
+      </div>
+    );
+  }
+
+  if (view === 'preview') {
+    return (
+      <div className="retro-page">
+        <div className="retro-page__back">
+          <button className="retro-back-btn" onClick={handlePreviewBack}>
+            <ChevronLeft size={18} /> חזרה לעריכת קובץ
+          </button>
+        </div>
+        <RetroDocsStep onSubmit={handleFinalizeImport} />
       </div>
     );
   }

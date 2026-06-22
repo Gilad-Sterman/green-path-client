@@ -9,6 +9,9 @@ export const fetchRetroIntakeById = (id) =>
 export const fetchRetroRecords = (id) =>
   apiClient.get(`/retro/${id}/records`);
 
+export const previewRetroFile = (formData) =>
+  apiClient.post('/retro/preview', formData);
+
 export const importRetroFile = (formData) =>
   apiClient.post('/retro', formData);
 

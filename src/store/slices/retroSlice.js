@@ -31,6 +31,19 @@ export const fetchRetroIntakeById = createAsyncThunk(
   }
 );
 
+export const previewRetroFile = createAsyncThunk(
+  'retro/preview',
+  async (formData, { rejectWithValue }) => {
+    try {
+      const res = await retroApi.previewRetroFile(formData);
+      return res.data.data;
+    } catch (err) {
+      const serverError = err.response?.data?.error;
+      return rejectWithValue(serverError || { message: 'בדיקה נכשלה. אנא נסה שנית.' });
+    }
+  }
+);
+
 export const importRetroFile = createAsyncThunk(
   'retro/import',
   async (formData, { rejectWithValue }) => {
@@ -50,13 +63,18 @@ const retroSlice = createSlice({
     batches:        [],
     selectedBatch:  null,
     records:        [],
+    previewResult:  null,
     importResult:   null,
     loading:        false,
     detailLoading:  false,
+    previewLoading: false,
     importLoading:  false,
     error:          null,
   },
   reducers: {
+    clearPreviewResult: (state) => {
+      state.previewResult = null;
+    },
     clearImportResult: (state) => {
       state.importResult = null;
     },
@@ -97,6 +115,21 @@ const retroSlice = createSlice({
         state.error         = action.payload;
       })
 
+      .addCase(previewRetroFile.pending, (state) => {
+        state.previewLoading = true;
+        state.previewResult  = null;
+        state.error          = null;
+      })
+      .addCase(previewRetroFile.fulfilled, (state, action) => {
+        state.previewLoading = false;
+        state.previewResult  = action.payload;
+      })
+      .addCase(previewRetroFile.rejected, (state, action) => {
+        state.previewLoading = false;
+        const payload = action.payload;
+        state.error = payload?.details?.message_he || payload?.message || 'בדיקה נכשלה. אנא נסה שנית.';
+      })
+
       .addCase(importRetroFile.pending, (state) => {
         state.importLoading = true;
         state.importResult  = null;
@@ -105,6 +138,7 @@ const retroSlice = createSlice({
       .addCase(importRetroFile.fulfilled, (state, action) => {
         state.importLoading = false;
         state.importResult  = { success: true, ...action.payload };
+        state.previewResult = null;
         if (action.payload.batch) {
           state.batches = [action.payload.batch, ...state.batches];
         }
@@ -127,5 +161,5 @@ const retroSlice = createSlice({
   },
 });
 
-export const { clearImportResult, clearSelectedBatch, clearError } = retroSlice.actions;
+export const { clearPreviewResult, clearImportResult, clearSelectedBatch, clearError } = retroSlice.actions;
 export default retroSlice.reducer;

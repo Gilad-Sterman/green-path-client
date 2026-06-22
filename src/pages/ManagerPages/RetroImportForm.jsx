@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { UploadCloud, FileSpreadsheet, Download, X, Loader } from 'lucide-react';
-import { importRetroFile, clearError } from '../../store/slices/retroSlice';
+import { previewRetroFile, clearError } from '../../store/slices/retroSlice';
 import { downloadRetroTemplate } from '../../api/retro.js';
 
 const triggerDownload = (blob, filename) => {
@@ -13,9 +13,9 @@ const triggerDownload = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-const RetroImportForm = ({ onCancel }) => {
+const RetroImportForm = ({ onCancel, onPreviewReady }) => {
   const dispatch      = useDispatch();
-  const { importLoading, error } = useSelector((s) => s.retro);
+  const { previewLoading, error } = useSelector((s) => s.retro);
   const { user }      = useSelector((s) => s.auth);
 
   const [file,         setFile]         = useState(null);
@@ -58,7 +58,8 @@ const RetroImportForm = ({ onCancel }) => {
       fd.append('factory_id', user.factory_id);
     }
 
-    dispatch(importRetroFile(fd));
+    onPreviewReady?.(file, { periodStart, periodEnd, notes });
+    dispatch(previewRetroFile(fd));
   };
 
   const handleTemplateDownload = async () => {
@@ -192,12 +193,12 @@ const RetroImportForm = ({ onCancel }) => {
           <button
             type="submit"
             className="retro-import-form__btn-submit"
-            disabled={!file || importLoading}
+            disabled={!file || previewLoading}
           >
-            {importLoading ? (
-              <><Loader size={16} className="spin" /> מעבד קובץ...</>
+            {previewLoading ? (
+              <><Loader size={16} className="spin" /> בודק קובץ...</>
             ) : (
-              <><UploadCloud size={16} /> בדיקה וייבוא</>
+              <><UploadCloud size={16} /> בדיקת קובץ</>
             )}
           </button>
         </div>

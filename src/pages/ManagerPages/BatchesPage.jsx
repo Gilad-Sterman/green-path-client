@@ -37,6 +37,9 @@ const BatchesPage = () => {
   const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo]     = useState('');
+  const [creatorFilter, setCreatorFilter] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [detailData, setDetailData] = useState({});
   const [detailLoading, setDetailLoading] = useState(false);
@@ -137,12 +140,32 @@ const BatchesPage = () => {
     dispatch(fetchIntakes({ force: true }));
   };
 
-  const visible = batches.filter((b) => {
-    const matchStatus = statusFilter.length === 0 || statusFilter.includes(b.status);
-    const q = search.toLowerCase();
+  const uniqueCreators = [...new Set(batches.map((b) => b.creator_name).filter(Boolean))].sort();
+  const hasActiveFilters = statusFilter.length > 0 || search || dateFrom || dateTo || creatorFilter;
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatusFilter([]);
+    setDateFrom('');
+    setDateTo('');
+    setCreatorFilter('');
+  };
+
+  const applyNonStatusFilters = (b) => {
+    const q           = search.toLowerCase();
     const matchSearch = !q || b.product_name?.toLowerCase().includes(q) || b.batch_code?.toLowerCase().includes(q);
-    return matchStatus && matchSearch;
-  });
+    const bDate       = new Date(b.batch_date || b.created_at);
+    const matchDate   = (!dateFrom || bDate >= new Date(dateFrom)) &&
+                        (!dateTo   || bDate <= new Date(dateTo));
+    const matchCreator = !creatorFilter || b.creator_name === creatorFilter;
+    return matchSearch && matchDate && matchCreator;
+  };
+
+  const preStatusFiltered = batches.filter(applyNonStatusFilters);
+
+  const visible = preStatusFiltered.filter((b) =>
+    statusFilter.length === 0 || statusFilter.includes(b.status)
+  );
 
   return (
     <div className="manager-page">
@@ -191,10 +214,49 @@ const BatchesPage = () => {
               onClick={() => setStatusFilter((p) => p.includes(s) ? p.filter((x) => x !== s) : [...p, s])}
             >
               {STATUS_CHIP_LABELS[s]}
-              <span className="status-chip__count">({batches.filter((b) => b.status === s).length})</span>
+              <span className="status-chip__count">({preStatusFiltered.filter((b) => b.status === s).length})</span>
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="batch-extra-filters">
+        <div className="batch-date-range">
+          <input
+            type="date"
+            className="batch-date-input"
+            title="מתאריך"
+            value={dateFrom}
+            max={dateTo || undefined}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+          <span className="batch-date-sep">—</span>
+          <input
+            type="date"
+            className="batch-date-input"
+            title="עד תאריך"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+        {uniqueCreators.length > 0 && (
+          <select
+            className="batch-creator-select"
+            value={creatorFilter}
+            onChange={(e) => setCreatorFilter(e.target.value)}
+          >
+            <option value="">כל המשתמשים</option>
+            {uniqueCreators.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        )}
+        {hasActiveFilters && (
+          <button className="batch-clear-btn" onClick={clearAllFilters}>
+            נקה פילטרים
+          </button>
+        )}
       </div>
 
       {loading && <div className="loading-row">טוען אצוות…</div>}

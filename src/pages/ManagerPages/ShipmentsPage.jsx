@@ -8,6 +8,7 @@ import {
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
 import ShipmentDetailDrawer from '../../components/ShipmentDetailDrawer';
+import DocumentUploader from '../../components/DocumentUploader';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import ShipmentForm from './ShipmentForm';
 import {
@@ -61,6 +62,7 @@ const ShipmentsPage = () => {
   const [invoiceModal,    setInvoiceModal]    = useState(null);
   const [invoiceNumber,   setInvoiceNumber]   = useState('');
   const [invoiceDate,     setInvoiceDate]     = useState('');
+  const [invoiceDocId,    setInvoiceDocId]    = useState(null);
   const [invoiceSaving,   setInvoiceSaving]   = useState(false);
   const [invoiceError,    setInvoiceError]    = useState('');
 
@@ -118,6 +120,7 @@ const ShipmentsPage = () => {
     setInvoiceModal(s);
     setInvoiceNumber('');
     setInvoiceDate('');
+    setInvoiceDocId(null);
     setInvoiceError('');
   };
 
@@ -127,8 +130,9 @@ const ShipmentsPage = () => {
     setInvoiceSaving(true);
     try {
       await updateShipmentInvoice(invoiceModal.id, {
-        invoice_number: invoiceNumber.trim(),
-        invoice_date:   invoiceDate || undefined,
+        invoice_number:      invoiceNumber.trim(),
+        invoice_date:        invoiceDate || undefined,
+        invoice_document_id: invoiceDocId || undefined,
       });
       setToast('חשבונית נשמרה בהצלחה.');
       dispatch(fetchShipments({ force: true }));
@@ -312,6 +316,18 @@ const ShipmentsPage = () => {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
+                  />
+                </div>
+                <div className="form-field">
+                  <label>קובץ חשבונית <span className="form-hint">(אופציונלי)</span></label>
+                  <DocumentUploader
+                    documentType="invoice_out"
+                    label="העלאת קובץ חשבונית"
+                    hint="JPG, PNG, PDF · עד 5MB"
+                    accept="image/jpeg,image/png,application/pdf"
+                    maxSizeMb={5}
+                    onDocumentReady={(id) => setInvoiceDocId(id || null)}
+                    disabled={invoiceSaving}
                   />
                 </div>
                 <div className="form-actions">
