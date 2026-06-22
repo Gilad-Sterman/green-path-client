@@ -1,19 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
-const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const MAPS_API_KEY    = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const CALLBACK_NAME   = '__gmapPlacesReady';
 let scriptPromise = null;
 
 const loadGoogleMaps = () => {
-  if (window.google?.maps) return Promise.resolve();
+  if (window.google?.maps?.places?.PlaceAutocompleteElement) return Promise.resolve();
   if (scriptPromise) return scriptPromise;
 
   scriptPromise = new Promise((resolve, reject) => {
+    window[CALLBACK_NAME] = () => {
+      delete window[CALLBACK_NAME];
+      resolve();
+    };
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&loading=async&language=he`;
+    script.src   = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&libraries=places&language=he&callback=${CALLBACK_NAME}`;
     script.async = true;
-    script.onload = resolve;
-    script.onerror = () => { scriptPromise = null; reject(new Error('Google Maps load failed')); };
+    script.defer = true;
+    script.onerror = () => {
+      delete window[CALLBACK_NAME];
+      scriptPromise = null;
+      reject(new Error('Google Maps script failed to load'));
+    };
     document.head.appendChild(script);
   });
 
@@ -28,7 +37,7 @@ const AddressAutocomplete = ({ onInputChange, onPlaceSelect, placeholder, requir
   const skipNextInputRef  = useRef(false);
 
   const [validated, setValidated] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => { onPlaceSelectRef.current = onPlaceSelect; }, [onPlaceSelect]);
   useEffect(() => { onInputChangeRef.current = onInputChange; }, [onInputChange]);
@@ -38,11 +47,13 @@ const AddressAutocomplete = ({ onInputChange, onPlaceSelect, placeholder, requir
     let isMounted = true;
 
     loadGoogleMaps()
-      .then(async () => {
+      .then(() => {
         if (!isMounted || !containerRef.current) return;
 
-        const { PlaceAutocompleteElement } = await window.google.maps.importLibrary('places');
-        if (!isMounted || !containerRef.current) return;
+        const PlaceAutocompleteElement = window.google.maps.places.PlaceAutocompleteElement;
+        if (!PlaceAutocompleteElement) {
+          throw new Error('PlaceAutocompleteElement not found — check Places API is enabled');
+        }
 
         const el = new PlaceAutocompleteElement({
           componentRestrictions: { country: ['il'] },
@@ -82,7 +93,10 @@ const AddressAutocomplete = ({ onInputChange, onPlaceSelect, placeholder, requir
           onInputChangeRef.current(el.value || '');
         });
       })
-      .catch(() => { if (isMounted) setLoadError(true); });
+      .catch((err) => {
+        console.error('[AddressAutocomplete] load failed:', err);
+        if (isMounted) setLoadError(err?.message || 'unknown error');
+      });
 
     return () => {
       isMounted = false;
@@ -98,7 +112,7 @@ const AddressAutocomplete = ({ onInputChange, onPlaceSelect, placeholder, requir
         {validated && <CheckCircle size={15} className="address-autocomplete__check" />}
       </div>
       {loadError && (
-        <span className="field-hint field-hint--error">
+        <span className="field-hint field-hint--error" title={loadError}>
           <AlertCircle size={12} /> שגיאה בטעינת Google Maps
         </span>
       )}
