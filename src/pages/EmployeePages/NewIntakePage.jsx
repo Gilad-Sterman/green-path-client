@@ -231,8 +231,8 @@ const NewIntakePage = () => {
 
   const eligibleKg = () => {
     const w = parseFloat(form.net_weight_kg);
-    const p = parseFloat(form.eligible_input_percent);
-    if (!isNaN(w) && !isNaN(p) && w > 0) return ((w * p) / 100).toFixed(2);
+    const p = form.is_recycled ? 100 : 0;
+    if (!isNaN(w) && w > 0) return ((w * p) / 100).toFixed(2);
     return null;
   };
 

@@ -120,7 +120,6 @@ const IntakesPage = () => {
                   </span>
                   {isManager && (
                     <RowActionsMenu items={[
-                      { label: 'עריכה', icon: <Pencil size={14} />, onClick: () => navigate('/intakes/new', { state: { intake: i } }) },
                       { label: 'הוספת שקילה פנימית', icon: <Scale size={14} />, onClick: () => setWeighingIntake(i) },
                     ]} />
                   )}

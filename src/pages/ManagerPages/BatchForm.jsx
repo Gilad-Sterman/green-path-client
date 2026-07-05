@@ -275,6 +275,18 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
                       value={src.weight_kg}
                       onChange={(e) => updateSource(idx, 'weight_kg', e.target.value)}
                     />
+                    {selected && src.weight_kg && (
+                      <span
+                        className="field-hint"
+                        style={{
+                          marginTop: '4px',
+                          display: 'block',
+                          color: selected.remaining_kg - parseFloat(src.weight_kg) < 0 ? 'var(--color-danger)' : 'var(--color-text-muted)'
+                        }}
+                      >
+                        יתרה לאחר שימוש: <strong>{fmtKg(selected.remaining_kg - parseFloat(src.weight_kg))}</strong>
+                      </span>
+                    )}
                   </div>
 
                   {sources.length > 1 && (
