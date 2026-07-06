@@ -76,7 +76,7 @@ const ReportsPage = () => {
       const url  = URL.createObjectURL(new Blob([resp.data], { type: 'text/csv' }));
       const a    = document.createElement('a');
       a.href = url;
-      a.download = `greenpath-credits-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `aterum-credits-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {

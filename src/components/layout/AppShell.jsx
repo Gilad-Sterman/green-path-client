@@ -38,7 +38,7 @@ const AppShell = () => {
               <MapPin size={18} className="location-prompt-banner__icon" />
               <div>
                 <strong>נדרש אישור מיקום</strong>
-                <p>GreenPath צריך גישה למיקומך כדי לאמת שאתה נמצא במפעל בעת קליטת חומרים.</p>
+                <p>ATERUM צריך גישה למיקומך כדי לאמת שאתה נמצא במפעל בעת קליטת חומרים.</p>
               </div>
             </div>
             <button

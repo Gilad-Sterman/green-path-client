@@ -858,29 +858,49 @@
   display: inline-flex;
   align-items: center;
   gap: $space-2;
-  padding: $space-1 $space-3;
-  border: 1px solid $color-border;
-  border-radius: $radius-full;
-  background: $color-bg;
-  color: $color-text-muted;
-  font-size: $font-size-sm;
+  border: none;
+  background: none;
+  padding: 0;
   cursor: pointer;
-  transition: all 0.15s;
+  font-family: inherit;
 
-  &:hover {
-    border-color: $color-primary;
-    color: $color-primary;
+  &__track {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    border-radius: $radius-full;
+    background: $color-gray;
+    flex-shrink: 0;
+    transition: background $transition-base;
+  }
+
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    transition: transform $transition-base;
+    transform: translateX(3px);
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-muted;
+    transition: color $transition-fast;
   }
 
   &--on {
-    background: $color-primary;
-    border-color: $color-primary;
-    color: #fff;
-
-    &:hover {
-      background: darken($color-primary, 8%);
-    }
+    .toggle-btn__track { background: $color-primary; }
+    .toggle-btn__thumb { transform: translateX(19px); }
+    .toggle-btn__label { color: $color-primary; }
   }
+
+  &:hover:not(:disabled) { opacity: 0.82; }
 }
 
 .field-badge--edited {
@@ -1524,7 +1544,7 @@
 .iw-modal {
   @include card;
   width: calc(100vw - 32px);
-  max-width: 400px;
+  max-width: 480px;
   animation: modal-in 0.18s ease;
 
   &__header {
@@ -1634,6 +1654,73 @@
   &:hover          { border-color: $color-primary; color: $color-primary; }
   &--busy          { cursor: default; pointer-events: none; }
   &--done          { border-style: solid; border-color: $color-primary; color: $color-primary; }
+}
+
+.iw-entries {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.iw-entry {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-2;
+
+  &__file {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+
+  &__weight {
+    width: 88px;
+    flex-shrink: 0;
+    padding: $space-2;
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    font-size: $font-size-sm;
+    color: $color-text;
+    background: $color-surface;
+    text-align: center;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__remove {
+    flex-shrink: 0;
+  }
+
+  &__msg {
+    width: 100%;
+    margin: 0;
+  }
+}
+
+.iw-add-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.iw-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-2 $space-3;
+  background: $color-primary-light;
+  border: 1px solid $color-primary;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text;
+
+  strong {
+    font-weight: $font-weight-semi;
+    color: $color-primary;
+  }
 }
 
 .iw-extra-docs {

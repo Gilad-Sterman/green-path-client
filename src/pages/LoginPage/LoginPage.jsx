@@ -125,11 +125,11 @@ const LoginPage = () => {
 
         <div className="login-brand">
           <Leaf size={28} strokeWidth={2.5} />
-          <span>Green Path</span>
+          <span>ATERUM</span>
         </div>
 
         <div className="login-header">
-          <h3>ברוכים הבאים ל-Green Path</h3>
+          <h3>ברוכים הבאים ל-ATERUM</h3>
         </div>
 
         {errorKey && (
@@ -178,7 +178,7 @@ const LoginPage = () => {
                 disabled={loading}
               />
               <label htmlFor="terms">
-                אני מאשר/ת את תנאי השימוש ומדיניות הפרטיות של Green Path
+                אני מאשר/ת את תנאי השימוש ומדיניות הפרטיות של ATERUM
               </label>
             </div>
 

@@ -31,7 +31,7 @@ const Header = ({ showBrand = false }) => {
       {showBrand && (
         <div className="app-header__brand">
           <Leaf size={20} strokeWidth={2.5} />
-          <span>GreenPath</span>
+          <span>ATERUM</span>
         </div>
       )}
 

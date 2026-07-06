@@ -90,7 +90,7 @@ const Sidebar = ({ role }) => {
       <aside className="sidebar">
         <div className="sidebar__brand">
           <Leaf size={22} strokeWidth={2.5} />
-          <span>GreenPath</span>
+          <span>ATERUM</span>
         </div>
         <div className="sidebar__add-factory">
           <NavLink to="/admin/factories?new=1" className="sidebar__add-btn">
@@ -119,7 +119,7 @@ const Sidebar = ({ role }) => {
     <aside className="sidebar">
       <div className="sidebar__brand">
         <Leaf size={22} strokeWidth={2.5} />
-        <span>GreenPath</span>
+        <span>ATERUM</span>
       </div>
 
       <nav className="sidebar__nav">
