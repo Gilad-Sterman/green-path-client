@@ -1,17 +1,7 @@
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { UploadCloud, FileSpreadsheet, Download, X, Loader } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, X, Loader } from 'lucide-react';
 import { previewRetroFile, clearError } from '../../store/slices/retroSlice';
-import { downloadRetroTemplate } from '../../api/retro.js';
-
-const triggerDownload = (blob, filename) => {
-  const url = URL.createObjectURL(blob);
-  const a   = document.createElement('a');
-  a.href     = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-};
 
 const RetroImportForm = ({ onCancel, onPreviewReady }) => {
   const dispatch      = useDispatch();
@@ -23,7 +13,6 @@ const RetroImportForm = ({ onCancel, onPreviewReady }) => {
   const [periodEnd,    setPeriodEnd]    = useState('');
   const [notes,        setNotes]        = useState('');
   const [dragOver,     setDragOver]     = useState(false);
-  const [templateBusy, setTemplateBusy] = useState(false);
   const fileInputRef = useRef(null);
 
   const ACCEPTED = [
@@ -62,25 +51,13 @@ const RetroImportForm = ({ onCancel, onPreviewReady }) => {
     dispatch(previewRetroFile(fd));
   };
 
-  const handleTemplateDownload = async () => {
-    try {
-      setTemplateBusy(true);
-      const res = await downloadRetroTemplate();
-      triggerDownload(res.data, 'retro_import_template.xlsx');
-    } catch {
-    } finally {
-      setTemplateBusy(false);
-    }
-  };
-
   return (
     <div className="retro-import-form">
       <div className="retro-import-form__header">
         <div>
           <h2 className="retro-import-form__title">ייבוא נתוני הסמכה היסטוריים</h2>
           <p className="retro-import-form__subtitle">
-            העלו קובץ במבנה המוגדר לצורך קליטת נתוני עבר למערכת ההסמכה.
-            המערכת תבדוק את הקובץ, תציג שגיאות במידת הצורך, ותייבא רק נתונים תקינים.
+            הפיקו דוח קניות מחשבשבת והעלו אותו ישירות. המערכת תבדוק את הקובץ ותייבא את הנתונים אוטומטית.
           </p>
         </div>
         {onCancel && (
@@ -89,16 +66,6 @@ const RetroImportForm = ({ onCancel, onPreviewReady }) => {
           </button>
         )}
       </div>
-
-      <button
-        type="button"
-        className="retro-import-form__template-btn"
-        onClick={handleTemplateDownload}
-        disabled={templateBusy}
-      >
-        <Download size={16} />
-        {templateBusy ? 'מוריד...' : 'הורדת תבנית קובץ'}
-      </button>
 
       <form onSubmit={handleSubmit} className="retro-import-form__body">
         <div
