@@ -194,6 +194,9 @@
 }
 
 .app-header__brand {
+  img {
+    height: 32px;
+  }
   @include flex-center;
   gap: $space-2;
   font-size: $font-size-base;

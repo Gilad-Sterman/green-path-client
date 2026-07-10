@@ -18,11 +18,11 @@ const PERIODS = [
 ];
 
 const MGMT_TILES = [
-  { to: '/products', icon: Box, label: 'ניהול תוצ"ג' },
-  { to: '/batches', icon: Layers, label: 'ניהול אצוות' },
-  { to: '/shipments', icon: Truck, label: 'משלוחים' },
+  { to: '/suppliers', icon: Building2, label: 'הגדרת ספקים ולקוחות' },
   { to: '/intakes', icon: Package, label: 'ניהול כניסות' },
-  { to: '/suppliers', icon: Building2, label: 'ניהול ספקים ולקוחות' },
+  { to: '/batches', icon: Layers, label: 'ניהול אצוות' },
+  { to: '/products', icon: Box, label: 'הגדרת תוצ"ג' },
+  { to: '/shipments', icon: Truck, label: 'משלוחים' },
   // { to: '/credits', icon: Award, label: 'קרדיטים' },
   // { to: '/reports', icon: BarChart3, label: 'דו"ח' },
   { to: '/retro-intake', icon: Flag, label: 'העלאת נתוני הסמכה (רטרו)' },

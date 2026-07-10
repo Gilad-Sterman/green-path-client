@@ -124,8 +124,7 @@ const LoginPage = () => {
       <div className="login-card">
 
         <div className="login-brand">
-          <Leaf size={28} strokeWidth={2.5} />
-          <span>ATERUM</span>
+          <img src="https://dughmjbtfgwtrktzzqqg.supabase.co/storage/v1/object/sign/documents/ffbc0e4d-5080-44e4-8c1a-b6070f0ec641.jpeg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kZjEzMTc4OC0xMjg2LTQ0N2QtOTU4MC00ZTgyOTFhZGI2ZjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvZmZiYzBlNGQtNTA4MC00NGU0LThjMWEtYjYwNzBmMGVjNjQxLmpwZWciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzgzNjkyMzA1LCJleHAiOjE4MTUyMjgzMDV9.12YyzDfnxD5A6cP3nNKIEsf9Viz10BxE-hxE7N-nBUs" alt="logo" />
         </div>
 
         <div className="login-header">

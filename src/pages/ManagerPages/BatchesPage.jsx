@@ -340,7 +340,7 @@ const BatchesPage = () => {
                 onClick={() => toggleExpand(b.id)}
               >
                 {expandedId === b.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                {expandedId === b.id ? 'סגור פירוט' : 'מקורות'}
+                {expandedId === b.id ? 'סגור פירוט' : 'חומרים'}
               </button>
               {expandedId === b.id && (
                 <div className="batch-card-detail">
@@ -351,7 +351,7 @@ const BatchesPage = () => {
                         <p className="batch-card-detail__notes"><strong>הערות:</strong> {detailData[b.id].notes}</p>
                       )}
                       {detailData[b.id].components?.length > 0 && (
-                        <p className="batch-card-detail__section-title">מקורות חומר:</p>
+                        <p className="batch-card-detail__section-title">חומרים:</p>
                       )}
                       {detailData[b.id].components?.map((c) => (
                         <div key={c.id} className="batch-card-detail__row">

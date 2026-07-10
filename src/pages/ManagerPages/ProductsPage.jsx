@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Plus, X, AlertCircle, RefreshCw, Pencil, Trash2, Upload, FileCheck, Loader2 } from 'lucide-react';
+import { Box, Plus, X, AlertCircle, RefreshCw, Pencil, Trash2, Upload, FileCheck, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import RowActionsMenu from '../../components/RowActionsMenu';
 import Toast from '../../components/Toast';
 import useRelativeTime from '../../hooks/useRelativeTime';
@@ -52,7 +52,20 @@ const ProductsPage = () => {
   const [labUploading, setLabUploading] = useState(false);
   const [editingDocs, setEditingDocs]   = useState({ spec: null, lab: null, loading: false });
 
+  const [specPreviewUrl,  setSpecPreviewUrl]  = useState(null);
+  const [specPreviewMime, setSpecPreviewMime] = useState('');
+  const [specExpanded,    setSpecExpanded]    = useState(true);
+
   useEffect(() => { dispatch(fetchProducts()); }, [dispatch]);
+
+  useEffect(() => {
+    if (editingDocs.spec?.signed_url) {
+      setSpecPreviewUrl(editingDocs.spec.signed_url);
+      const name = (editingDocs.spec.file_name || '').toLowerCase();
+      setSpecPreviewMime(name.endsWith('.pdf') ? 'pdf' : 'image');
+      setSpecExpanded(true);
+    }
+  }, [editingDocs.spec]);
 
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value })); setFormError('');
@@ -155,6 +168,11 @@ const ProductsPage = () => {
     const file = e.target.files?.[0];
     if (specFileRef.current) specFileRef.current.value = '';
     if (!file) return;
+    if (specPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(specPreviewUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setSpecPreviewUrl(previewUrl);
+    setSpecPreviewMime(file.type === 'application/pdf' ? 'pdf' : 'image');
+    setSpecExpanded(true);
     setSpecUploading(true);
     setFormError('');
     try {
@@ -163,6 +181,9 @@ const ProductsPage = () => {
       setSpecFileName(file.name);
     } catch {
       setFormError('העלאת מפרט המוצר נכשלה. נסה שנית.');
+      URL.revokeObjectURL(previewUrl);
+      setSpecPreviewUrl(null);
+      setSpecPreviewMime('');
     } finally {
       setSpecUploading(false);
     }
@@ -186,10 +207,12 @@ const ProductsPage = () => {
   };
 
   const handleClose = () => {
+    if (specPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(specPreviewUrl);
     setShowForm(false); setEditingId(null); setForm(EMPTY_FORM); setRecipe([{ ...EMPTY_RECIPE_ROW }]); setFormError('');
     setSpecDocId(null); setSpecFileName(''); setSpecUploading(false);
     setLabDocId(null); setLabFileName(''); setLabUploading(false);
     setEditingDocs({ spec: null, lab: null, loading: false });
+    setSpecPreviewUrl(null); setSpecPreviewMime(''); setSpecExpanded(true);
     dispatch(clearProductsError());
   };
 
@@ -232,6 +255,31 @@ const ProductsPage = () => {
           </div>
           <form onSubmit={handleSubmit} className="manager-form">
             {formError && <div className="alert alert--error"><AlertCircle size={15} />{formError}</div>}
+
+            {specPreviewUrl && (
+              <div className="spec-preview">
+                <div className="spec-preview__header" onClick={() => setSpecExpanded((p) => !p)}>
+                  <FileCheck size={15} />
+                  <span className="spec-preview__title">מפרט מוצר</span>
+                  <span className="spec-preview__filename">
+                    {specFileName || editingDocs.spec?.file_name || ''}
+                  </span>
+                  {specExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </div>
+                {specExpanded && (
+                  <div className="spec-preview__body">
+                    {specPreviewMime === 'pdf' ? (
+                      <a href={specPreviewUrl} target="_blank" rel="noopener noreferrer" className="spec-preview__pdf-link">
+                        <FileCheck size={28} />
+                        <span>פתח מפרט מוצר</span>
+                      </a>
+                    ) : (
+                      <img src={specPreviewUrl} alt="מפרט מוצר" className="spec-preview__img" />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="form-field">
               <label>שם תוצ"ג <span className="required">*</span></label>
@@ -354,7 +402,7 @@ const ProductsPage = () => {
                     <div className="file-upload-indicator file-upload-indicator--done">
                       <FileCheck size={15} />
                       <span className="file-upload-indicator__name">{specFileName}</span>
-                      <button type="button" className="icon-btn" onClick={() => { setSpecDocId(null); setSpecFileName(''); }}>
+                      <button type="button" className="icon-btn" onClick={() => { if (specPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(specPreviewUrl); setSpecDocId(null); setSpecFileName(''); setSpecPreviewUrl(null); setSpecPreviewMime(''); }}>
                         <X size={13} />
                       </button>
                     </div>
@@ -366,7 +414,7 @@ const ProductsPage = () => {
                   )}
                 </div>
                 <div className="form-field">
-                  <label>בדיקות מעבדה <span className="form-hint">(אופציונלי)</span></label>
+                  <label>בדיקות מעבדה ליחוס <span className="form-hint">(אופציונלי)</span></label>
                   <input
                     ref={labFileRef}
                     type="file"

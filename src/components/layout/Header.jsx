@@ -30,8 +30,7 @@ const Header = ({ showBrand = false }) => {
     <header className="app-header">
       {showBrand && (
         <div className="app-header__brand">
-          <Leaf size={20} strokeWidth={2.5} />
-          <span>ATERUM</span>
+          <img src="https://dughmjbtfgwtrktzzqqg.supabase.co/storage/v1/object/sign/documents/ffbc0e4d-5080-44e4-8c1a-b6070f0ec641.jpeg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kZjEzMTc4OC0xMjg2LTQ0N2QtOTU4MC00ZTgyOTFhZGI2ZjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvZmZiYzBlNGQtNTA4MC00NGU0LThjMWEtYjYwNzBmMGVjNjQxLmpwZWciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzgzNjkyOTIyLCJleHAiOjE4MTUyMjg5MjJ9.9Qu_LT5W_SGWW0_1Lz9IqR8n0inFtp0t7i7XlvbvFxI" alt="logo" />
         </div>
       )}
 

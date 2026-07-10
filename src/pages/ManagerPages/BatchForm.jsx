@@ -204,7 +204,7 @@ const BatchForm = ({ products = [], onClose, onSuccess }) => {
           <div className="components-section">
             <div className="components-section__header">
               <label>
-                מקורות חומר <span className="required">*</span>
+                 חומרים <span className="required">*</span>
                 <span className="field-hint-inline"> (עד 6)</span>
               </label>
               <button
