@@ -15,7 +15,7 @@ const RetroDocsStep = ({ onSubmit }) => {
 
   const { validCount, rejectedCount, flaggedCount, totalCredits, errors } = previewResult;
   const hasValid  = validCount > 0;
-  const canSubmit = hasValid && invoiceDocIds.length > 0 && labTestDocIds.length > 0;
+  const canSubmit = hasValid;
 
   const bannerCls = hasValid
     ? (rejectedCount > 0 ? 'retro-docs-step__banner--warn' : 'retro-docs-step__banner--ok')
@@ -27,7 +27,7 @@ const RetroDocsStep = ({ onSubmit }) => {
         <h2 className="retro-docs-step__title">ייבוא נתוני הסמכה</h2>
         <div className="retro-docs-step__steps">
           <span className="retro-docs-step__step retro-docs-step__step--done">שלב 1: בדיקת קובץ ✓</span>
-          <span className="retro-docs-step__step retro-docs-step__step--active">שלב 2: מסמכי חובה</span>
+          <span className="retro-docs-step__step retro-docs-step__step--active">שלב 2: מסמכים נלווים</span>
         </div>
       </div>
 
@@ -62,14 +62,14 @@ const RetroDocsStep = ({ onSubmit }) => {
         <div className="retro-docs-step__docs">
           <div className="retro-docs-step__docs-title">
             <FileText size={15} />
-            <span>מסמכי חובה</span>
-            <span className="retro-docs-step__docs-hint">שני המסמכים נדרשים לפני השלמת הייבוא</span>
+            <span>מסמכים נלווים</span>
+            <span className="retro-docs-step__docs-hint">ניתן להעלות חשבוניות או בדיקות מעבדה (אופציונלי)</span>
           </div>
 
           <div className="retro-docs-step__slot">
             <div className="retro-docs-step__slot-header">
               <span className="retro-docs-step__slot-label">
-                חשבונית <span className="required">*</span>
+                חשבונית <span className="form-hint">(אופציונלי)</span>
               </span>
               {invoiceDocIds.length > 0 && (
                 <span className="retro-docs-step__slot-ok">
@@ -92,7 +92,7 @@ const RetroDocsStep = ({ onSubmit }) => {
           <div className="retro-docs-step__slot">
             <div className="retro-docs-step__slot-header">
               <span className="retro-docs-step__slot-label">
-                בדיקת מעבדה <span className="required">*</span>
+                בדיקת מעבדה <span className="form-hint">(אופציונלי)</span>
               </span>
               {labTestDocIds.length > 0 && (
                 <span className="retro-docs-step__slot-ok">

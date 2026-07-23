@@ -15,6 +15,8 @@ const PERIODS = [
   { key: 'day', label: 'יום' },
   { key: 'week', label: 'שבוע' },
   { key: 'month', label: 'חודש' },
+  { key: 'year', label: 'השנה' },
+  { key: 'custom', label: 'טווח מותאם' },
 ];
 
 const MGMT_TILES = [
@@ -32,6 +34,8 @@ const MGMT_TILES = [
 const getPeriodStart = (p) => {
   if (p === 'day') return new Date(new Date().setHours(0, 0, 0, 0));
   if (p === 'week') return new Date(Date.now() - 7 * 86400000);
+  if (p === 'month') return new Date(Date.now() - 30 * 86400000);
+  if (p === 'year') return new Date(new Date().getFullYear(), 0, 1);
   return new Date(Date.now() - 30 * 86400000);
 };
 
@@ -50,6 +54,10 @@ const ManagerDashboard = () => {
   const { summary: flagsSummary } = useSelector((s) => s.flags);
 
   const [period, setPeriod] = useState('day');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
 
   useEffect(() => {
     dispatch(fetchIntakes());
@@ -57,16 +65,35 @@ const ManagerDashboard = () => {
     dispatch(fetchFlagsSummary());
   }, [dispatch]);
 
+  const isCustom = period === 'custom';
+
   useEffect(() => {
-    dispatch(fetchCreditsSummary({ date_from: getPeriodStart(period).toISOString() }));
-  }, [dispatch, period]);
+    if (isCustom && !(appliedFrom && appliedTo)) return; // wait for Apply
+    dispatch(fetchCreditsSummary(
+      isCustom
+        ? { date_from: effectiveFrom.toISOString(), date_to: effectiveTo.toISOString() }
+        : { date_from: getPeriodStart(period).toISOString() }
+    ));
+  }, [dispatch, period, isCustom, appliedFrom, appliedTo]);
 
   const openFlags = flagsSummary?.open ?? null;
 
-  const periodStart = getPeriodStart(period);
-  const batchesInPeriod = batches.filter((b) => new Date(b.created_at) >= periodStart).length;
+  const effectiveFrom = isCustom && appliedFrom
+    ? new Date(appliedFrom)
+    : getPeriodStart(period);
+  const effectiveTo = isCustom && appliedTo
+    ? new Date(new Date(appliedTo).setHours(23, 59, 59, 999))
+    : new Date();
+
+  const batchesInPeriod = batches.filter((b) => {
+    const d = new Date(b.created_at);
+    return d >= effectiveFrom && d <= effectiveTo;
+  }).length;
   const intakeWeightInPeriod = intakes
-    .filter((i) => new Date(i.created_at) >= periodStart)
+    .filter((i) => {
+      const d = new Date(i.created_at);
+      return d >= effectiveFrom && d <= effectiveTo;
+    })
     .reduce((s, i) => s + parseFloat(i.eligible_weight_kg || 0), 0);
 
   const isLoading = intakesLoading || batchesLoading;
@@ -134,6 +161,26 @@ const ManagerDashboard = () => {
             </button>
           ))}
         </div>
+        {isCustom && (
+          <div className="custom-date-range">
+            <label>
+              מתאריך
+              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+            </label>
+            <label>
+              עד תאריך
+              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+            </label>
+            <button
+              type="button"
+              className="custom-date-range__apply"
+              disabled={!customFrom || !customTo}
+              onClick={() => { setAppliedFrom(customFrom); setAppliedTo(customTo); }}
+            >
+              החל
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="dashboard__kpis">

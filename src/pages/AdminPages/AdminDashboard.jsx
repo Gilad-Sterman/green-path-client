@@ -11,7 +11,9 @@ const DATE_PERIODS = [
   { key: 'day', label: 'יום אחרון' },
   { key: 'week', label: 'שבוע אחרון' },
   { key: 'month', label: 'חודש אחרון' },
+  { key: 'year', label: 'השנה' },
   { key: 'all', label: 'כל הזמן' },
+  { key: 'custom', label: 'טווח מותאם' },
 ];
 
 const getDateFrom = (period) => {
@@ -19,7 +21,18 @@ const getDateFrom = (period) => {
   if (period === 'day') return new Date(Date.now() - ms).toISOString();
   if (period === 'week') return new Date(Date.now() - 7 * ms).toISOString();
   if (period === 'month') return new Date(Date.now() - 30 * ms).toISOString();
+  if (period === 'year') return new Date(new Date().getFullYear(), 0, 1).toISOString();
   return null;
+};
+
+const getDateParams = (period, appliedFrom, appliedTo) => {
+  if (period === 'custom') {
+    if (!appliedFrom || !appliedTo) return null; // not applied yet
+    const to = new Date(new Date(appliedTo).setHours(23, 59, 59, 999));
+    return { date_from: new Date(appliedFrom).toISOString(), date_to: to.toISOString() };
+  }
+  const date_from = getDateFrom(period);
+  return date_from ? { date_from } : {};
 };
 
 const fmtKg = (n) =>
@@ -42,22 +55,27 @@ const AdminDashboard = () => {
 
   const [activeTab, setActiveTab] = useState('factories');
   const [datePeriod, setDatePeriod] = useState('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
+  const isCustom = datePeriod === 'custom';
 
   useEffect(() => {
     dispatch(fetchFactories());
   }, [dispatch]);
 
   useEffect(() => {
-    const date_from = getDateFrom(datePeriod);
-    const params = date_from ? { date_from } : {};
+    const params = getDateParams(datePeriod, appliedFrom, appliedTo);
+    if (params === null) return; // custom selected but not applied yet
     dispatch(fetchCreditsSummary(params));
     dispatch(fetchFlagsSummary(params));
-  }, [datePeriod, dispatch]);
+  }, [datePeriod, appliedFrom, appliedTo, dispatch]);
 
   const handleRefresh = () => {
     dispatch(fetchFactories({ force: true }));
-    const date_from = getDateFrom(datePeriod);
-    const params = date_from ? { date_from } : {};
+    const params = getDateParams(datePeriod, appliedFrom, appliedTo);
+    if (params === null) return;
     dispatch(fetchCreditsSummary(params));
     dispatch(fetchFlagsSummary(params));
   };
@@ -110,6 +128,26 @@ const AdminDashboard = () => {
             {key === datePeriod && <span className="date-filter-btn__active-indicator"><Check size={16} /></span>}
           </button>
         ))}
+        {isCustom && (
+          <div className="custom-date-range">
+            <label style={{ color: "#666666" }}>
+              מתאריך
+              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+            </label>
+            <label style={{ color: "#666666" }}>
+              עד תאריך
+              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+            </label>
+            <button
+              type="button"
+              className="custom-date-range__apply"
+              disabled={!customFrom || !customTo}
+              onClick={() => { setAppliedFrom(customFrom); setAppliedTo(customTo); }}
+            >
+              החל
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="dashboard__tabs">
